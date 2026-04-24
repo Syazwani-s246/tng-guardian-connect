@@ -11,8 +11,11 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as GuardianRouteImport } from './routes/guardian'
 import { Route as FamilyRouteImport } from './routes/family'
+import { Route as DemoRouteImport } from './routes/demo'
+import { Route as CommunityRouteImport } from './routes/community'
 import { Route as BlockedRouteImport } from './routes/blocked'
 import { Route as AlertRouteImport } from './routes/alert'
+import { Route as AiMonitorRouteImport } from './routes/ai-monitor'
 import { Route as IndexRouteImport } from './routes/index'
 
 const GuardianRoute = GuardianRouteImport.update({
@@ -25,6 +28,16 @@ const FamilyRoute = FamilyRouteImport.update({
   path: '/family',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DemoRoute = DemoRouteImport.update({
+  id: '/demo',
+  path: '/demo',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CommunityRoute = CommunityRouteImport.update({
+  id: '/community',
+  path: '/community',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const BlockedRoute = BlockedRouteImport.update({
   id: '/blocked',
   path: '/blocked',
@@ -35,6 +48,11 @@ const AlertRoute = AlertRouteImport.update({
   path: '/alert',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AiMonitorRoute = AiMonitorRouteImport.update({
+  id: '/ai-monitor',
+  path: '/ai-monitor',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -43,38 +61,75 @@ const IndexRoute = IndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/ai-monitor': typeof AiMonitorRoute
   '/alert': typeof AlertRoute
   '/blocked': typeof BlockedRoute
+  '/community': typeof CommunityRoute
+  '/demo': typeof DemoRoute
   '/family': typeof FamilyRoute
   '/guardian': typeof GuardianRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/ai-monitor': typeof AiMonitorRoute
   '/alert': typeof AlertRoute
   '/blocked': typeof BlockedRoute
+  '/community': typeof CommunityRoute
+  '/demo': typeof DemoRoute
   '/family': typeof FamilyRoute
   '/guardian': typeof GuardianRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/ai-monitor': typeof AiMonitorRoute
   '/alert': typeof AlertRoute
   '/blocked': typeof BlockedRoute
+  '/community': typeof CommunityRoute
+  '/demo': typeof DemoRoute
   '/family': typeof FamilyRoute
   '/guardian': typeof GuardianRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/alert' | '/blocked' | '/family' | '/guardian'
+  fullPaths:
+    | '/'
+    | '/ai-monitor'
+    | '/alert'
+    | '/blocked'
+    | '/community'
+    | '/demo'
+    | '/family'
+    | '/guardian'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/alert' | '/blocked' | '/family' | '/guardian'
-  id: '__root__' | '/' | '/alert' | '/blocked' | '/family' | '/guardian'
+  to:
+    | '/'
+    | '/ai-monitor'
+    | '/alert'
+    | '/blocked'
+    | '/community'
+    | '/demo'
+    | '/family'
+    | '/guardian'
+  id:
+    | '__root__'
+    | '/'
+    | '/ai-monitor'
+    | '/alert'
+    | '/blocked'
+    | '/community'
+    | '/demo'
+    | '/family'
+    | '/guardian'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AiMonitorRoute: typeof AiMonitorRoute
   AlertRoute: typeof AlertRoute
   BlockedRoute: typeof BlockedRoute
+  CommunityRoute: typeof CommunityRoute
+  DemoRoute: typeof DemoRoute
   FamilyRoute: typeof FamilyRoute
   GuardianRoute: typeof GuardianRoute
 }
@@ -95,6 +150,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof FamilyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/demo': {
+      id: '/demo'
+      path: '/demo'
+      fullPath: '/demo'
+      preLoaderRoute: typeof DemoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/community': {
+      id: '/community'
+      path: '/community'
+      fullPath: '/community'
+      preLoaderRoute: typeof CommunityRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/blocked': {
       id: '/blocked'
       path: '/blocked'
@@ -109,6 +178,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AlertRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/ai-monitor': {
+      id: '/ai-monitor'
+      path: '/ai-monitor'
+      fullPath: '/ai-monitor'
+      preLoaderRoute: typeof AiMonitorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -121,8 +197,11 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AiMonitorRoute: AiMonitorRoute,
   AlertRoute: AlertRoute,
   BlockedRoute: BlockedRoute,
+  CommunityRoute: CommunityRoute,
+  DemoRoute: DemoRoute,
   FamilyRoute: FamilyRoute,
   GuardianRoute: GuardianRoute,
 }
