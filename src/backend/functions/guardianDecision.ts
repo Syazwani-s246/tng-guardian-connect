@@ -1,4 +1,4 @@
-import { GetCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
+import { GetCommand, UpdateCommand, PutCommand } from "@aws-sdk/lib-dynamodb";
 import { dynamo, TABLES } from "../lib/dynamodb";
 import { invokeGuardianLLM, TransactionContext } from "../lib/bedrock";
 
@@ -19,7 +19,7 @@ export async function guardianDecision(event: {
   );
   const txn = txnResult.Item;
   if (!txn) throw new Error("Transaction not found");
-  if (txn.decision !== "PENDING") throw new Error("Transaction already decided");
+  if (txn.decision !== "PENDING" && txn.decision !== "PENDING_GUARDIAN") throw new Error("Transaction already decided");
 
   // 2. check timer — if expired, fall back to AI
   const now = new Date();
@@ -67,7 +67,7 @@ export async function guardianDecision(event: {
         ExpressionAttributeNames: { "#decision": "decision" },
         ExpressionAttributeValues: {
           ":d": llmDecision.decision,
-          ":by": "AI_FALLBACK",
+          ":by": txn.decision === "PENDING_GUARDIAN" ? "AI_FALLBACK_TWILIO" : "AI_FALLBACK",
           ":r": llmDecision.reason,
           ":rbm": llmDecision.reasonBM,
           ":da": timestamp,
@@ -75,12 +75,26 @@ export async function guardianDecision(event: {
       })
     );
 
+    if (txn.decision === "PENDING_GUARDIAN") {
+      await dynamo.send(new PutCommand({
+        TableName: TABLES.AUDIT_LOG,
+        Item: {
+          txnId,
+          decisionBy: "AI_FALLBACK_TWILIO",
+          reason: "Guardian did not respond via WhatsApp within 90-second timeout period",
+          timestamp,
+        },
+      }));
+    }
+
     // update rewards — no points since guardian didn't respond
     return {
       txnId,
       decision: llmDecision.decision,
-      decisionBy: "AI_FALLBACK",
-      message: "Guardian did not respond in time. AI made the decision.",
+      decisionBy: txn.decision === "PENDING_GUARDIAN" ? "AI_FALLBACK_TWILIO" : "AI_FALLBACK",
+      message: txn.decision === "PENDING_GUARDIAN"
+        ? "Guardian did not respond via WhatsApp in time. AI made the decision."
+        : "Guardian did not respond in time. AI made the decision.",
     };
   }
 
@@ -104,7 +118,7 @@ export async function guardianDecision(event: {
       ExpressionAttributeNames: { "#decision": "decision" },
       ExpressionAttributeValues: {
         ":d": finalDecision,
-        ":by": `GUARDIAN#${guardianId}`,
+        ":by": txn.decision === "PENDING_GUARDIAN" ? `TWILIO_GUARDIAN#${guardianId}` : `GUARDIAN#${guardianId}`,
         ":r": reason,
         ":rbm": reasonBM,
         ":da": timestamp,
@@ -126,5 +140,5 @@ export async function guardianDecision(event: {
     })
   );
 
-  return { txnId, decision: finalDecision, decisionBy: `GUARDIAN#${guardianId}` };
+  return { txnId, decision: finalDecision, decisionBy: txn.decision === "PENDING_GUARDIAN" ? `TWILIO_GUARDIAN#${guardianId}` : `GUARDIAN#${guardianId}` };
 }
