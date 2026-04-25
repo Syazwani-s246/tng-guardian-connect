@@ -25,9 +25,10 @@ export interface TransactionContext {
 
 export interface BedrockDecision {
   decision: "APPROVE" | "BLOCK" | "HOLD";
+  confidence: number;
+  evidence_used: string[];
   reason: string;
   reasonBM: string;
-  confidence: number;
 }
 
 export async function invokeGuardianLLM(
@@ -57,9 +58,10 @@ Rules:
 Respond ONLY in this exact JSON format:
 {
   "decision": "APPROVE" | "BLOCK" | "HOLD",
-  "reason": "English explanation for logs",
-  "reasonBM": "Simple Bahasa Malaysia explanation for user (max 2 sentences)",
-  "confidence": 0.0-1.0
+  "confidence": 0.0-1.0,
+  "evidence_used": ["fact1 from context", "fact2 from context"],
+  "reason": "English explanation citing only facts above",
+  "reasonBM": "Simple Bahasa Malaysia for elderly user (max 2 sentences)",
 }`;
 
   const command = new InvokeModelCommand({
