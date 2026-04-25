@@ -20,7 +20,6 @@ import { Route as InboxRouteImport } from './routes/inbox'
 import { Route as HomeRouteImport } from './routes/home'
 import { Route as BlockedRouteImport } from './routes/blocked'
 import { Route as AlertRouteImport } from './routes/alert'
-import { Route as AiMonitorRouteImport } from './routes/ai-monitor'
 import { Route as IndexRouteImport } from './routes/index'
 
 const TrusteesRoute = TrusteesRouteImport.update({
@@ -78,11 +77,6 @@ const AlertRoute = AlertRouteImport.update({
   path: '/alert',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AiMonitorRoute = AiMonitorRouteImport.update({
-  id: '/ai-monitor',
-  path: '/ai-monitor',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -91,7 +85,6 @@ const IndexRoute = IndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/ai-monitor': typeof AiMonitorRoute
   '/alert': typeof AlertRoute
   '/blocked': typeof BlockedRoute
   '/home': typeof HomeRoute
@@ -106,7 +99,6 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/ai-monitor': typeof AiMonitorRoute
   '/alert': typeof AlertRoute
   '/blocked': typeof BlockedRoute
   '/home': typeof HomeRoute
@@ -122,7 +114,6 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/ai-monitor': typeof AiMonitorRoute
   '/alert': typeof AlertRoute
   '/blocked': typeof BlockedRoute
   '/home': typeof HomeRoute
@@ -139,7 +130,6 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/ai-monitor'
     | '/alert'
     | '/blocked'
     | '/home'
@@ -154,7 +144,6 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/ai-monitor'
     | '/alert'
     | '/blocked'
     | '/home'
@@ -169,7 +158,6 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
-    | '/ai-monitor'
     | '/alert'
     | '/blocked'
     | '/home'
@@ -185,7 +173,6 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AiMonitorRoute: typeof AiMonitorRoute
   AlertRoute: typeof AlertRoute
   BlockedRoute: typeof BlockedRoute
   HomeRoute: typeof HomeRoute
@@ -278,13 +265,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AlertRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/ai-monitor': {
-      id: '/ai-monitor'
-      path: '/ai-monitor'
-      fullPath: '/ai-monitor'
-      preLoaderRoute: typeof AiMonitorRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/': {
       id: '/'
       path: '/'
@@ -297,7 +277,6 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AiMonitorRoute: AiMonitorRoute,
   AlertRoute: AlertRoute,
   BlockedRoute: BlockedRoute,
   HomeRoute: HomeRoute,
