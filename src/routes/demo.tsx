@@ -103,6 +103,26 @@ function CountdownBlock({ onExpire }: { onExpire?: () => void }) {
   );
 }
 
+function AiAnalysingBlock() {
+  return (
+    <div className="mt-4 flex flex-col items-center gap-2">
+      <div className="flex items-center gap-1.5">
+        <span className="text-sm font-medium text-warning-foreground">AI is analysing transaction</span>
+        {[0, 150, 300].map((delay) => (
+          <span
+            key={delay}
+            className="w-1.5 h-1.5 rounded-full bg-warning-foreground animate-bounce"
+            style={{ animationDelay: `${delay}ms` }}
+          />
+        ))}
+      </div>
+      <p className="text-xs text-muted-foreground text-center">
+        AI Guardian monitors in real-time. No approval delay.
+      </p>
+    </div>
+  );
+}
+
 function AlertStep({ mode }: { mode: Mode }) {
   const navigate = useNavigate();
   const handleExpire = () => {
@@ -147,7 +167,7 @@ function AlertStep({ mode }: { mode: Mode }) {
             </p>
           </div>
 
-          <CountdownBlock onExpire={handleExpire} />
+          {mode === "ai" ? <AiAnalysingBlock /> : <CountdownBlock onExpire={handleExpire} />}
         </div>
 
         <div className="mt-6 space-y-3">
