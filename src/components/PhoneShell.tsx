@@ -56,14 +56,16 @@ function BottomNav() {
     { to: "/", icon: Wallet, label: "Wallet" },
     { to: "/guardian", icon: Shield, label: "Guardian", primary: true },
     { to: "/", icon: Bell, label: "Inbox" },
-    { to: "/", icon: User, label: "Me" },
+    { to: "/me", icon: User, label: "Me" },
   ];
 
   return (
     <nav className="absolute bottom-0 left-0 right-0 bg-card border-t border-border">
       <div className="grid grid-cols-5 h-20 px-2 pt-2 pb-3">
         {items.map(({ to, icon: Icon, label, primary }, i) => {
-          const active = primary ? pathname.startsWith("/guardian") || pathname.startsWith("/family") || pathname.startsWith("/alert") || pathname.startsWith("/blocked") : false;
+          const active = primary
+            ? pathname.startsWith("/guardian") || pathname.startsWith("/family") || pathname.startsWith("/alert") || pathname.startsWith("/blocked")
+            : !primary && to !== "/" && pathname.startsWith(to);
           return (
             <Link
               key={i}

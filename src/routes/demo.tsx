@@ -14,19 +14,20 @@ import {
 import { useEffect, useState } from "react";
 
 type Mode = "family" | "community" | "ai";
-type Step = "alert" | "notify" | "resolved";
+type Step = "alert" | "notify" | "resolved" | "ai-deciding";
+type Decision = "blocked" | "approved" | "ai-blocked";
 
 interface Search {
   mode: Mode;
   step: Step;
-  decision?: "blocked" | "approved";
+  decision?: Decision;
 }
 
 export const Route = createFileRoute("/demo")({
   validateSearch: (s: Record<string, unknown>): Search => ({
     mode: (s.mode as Mode) ?? "family",
     step: (s.step as Step) ?? "alert",
-    decision: s.decision as "blocked" | "approved" | undefined,
+    decision: s.decision as Decision | undefined,
   }),
   head: () => ({
     meta: [
@@ -48,6 +49,7 @@ function Demo() {
 
   if (step === "alert") return <AlertStep mode={mode} />;
   if (step === "notify") return <NotifyStep mode={mode} decision={decision ?? "blocked"} />;
+  if (step === "ai-deciding") return <AiDecidingStep mode={mode} />;
   return <ResolvedStep mode={mode} decision={decision ?? "blocked"} />;
 }
 
@@ -81,9 +83,14 @@ function useCountdown(totalSeconds: number, speedMultiplier = 1) {
   return { display: `${mins}:${secs}`, remaining };
 }
 
-function CountdownBlock() {
+function CountdownBlock({ onExpire }: { onExpire?: () => void }) {
   const { display, remaining } = useCountdown(90, 10);
   const urgent = remaining <= 20;
+
+  useEffect(() => {
+    if (remaining === 0) onExpire?.();
+  }, [remaining, onExpire]);
+
   return (
     <div className="mt-4 flex flex-col items-center gap-1">
       <span className={`text-3xl font-mono font-bold tabular-nums ${urgent ? "text-destructive" : "text-foreground"}`}>
@@ -97,6 +104,11 @@ function CountdownBlock() {
 }
 
 function AlertStep({ mode }: { mode: Mode }) {
+  const navigate = useNavigate();
+  const handleExpire = () => {
+    navigate({ to: "/demo", search: { mode, step: "ai-deciding" } as never });
+  };
+
   return (
     <PhoneShell title="Transaction Review" showBack backTo="/guardian">
       <div className="px-5 pt-6">
@@ -135,7 +147,7 @@ function AlertStep({ mode }: { mode: Mode }) {
             </p>
           </div>
 
-          <CountdownBlock />
+          <CountdownBlock onExpire={handleExpire} />
         </div>
 
         <div className="mt-6 space-y-3">
@@ -165,7 +177,41 @@ function AlertStep({ mode }: { mode: Mode }) {
   );
 }
 
-function NotifyStep({ mode, decision }: { mode: Mode; decision: "blocked" | "approved" }) {
+function AiDecidingStep({ mode }: { mode: Mode }) {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      navigate({ to: "/demo", search: { mode, step: "resolved", decision: "ai-blocked" } as never });
+    }, 2000);
+    return () => clearTimeout(t);
+  }, [navigate, mode]);
+
+  return (
+    <PhoneShell hideNav>
+      <div className="flex flex-col h-[calc(100vh-44px)] items-center justify-center px-6 text-center">
+        <div className="w-24 h-24 rounded-full bg-warning-soft flex items-center justify-center mb-6">
+          <Bot size={48} strokeWidth={2.2} className="text-warning-foreground" />
+        </div>
+        <h1 className="text-2xl font-bold text-foreground">AI Guardian is deciding...</h1>
+        <p className="mt-3 text-base text-muted-foreground max-w-xs leading-relaxed">
+          No response received. Our AI is analysing the transaction.
+        </p>
+        <div className="mt-6 flex items-center gap-2">
+          {[0, 150, 300].map((delay) => (
+            <span
+              key={delay}
+              className="w-2.5 h-2.5 rounded-full bg-warning-foreground animate-bounce"
+              style={{ animationDelay: `${delay}ms` }}
+            />
+          ))}
+        </div>
+      </div>
+    </PhoneShell>
+  );
+}
+
+function NotifyStep({ mode, decision }: { mode: Mode; decision: Decision }) {
   const navigate = useNavigate();
   const m = modeMeta[mode];
   const Icon = m.icon;
@@ -229,8 +275,9 @@ function NotifyStep({ mode, decision }: { mode: Mode; decision: "blocked" | "app
   );
 }
 
-function ResolvedStep({ mode, decision }: { mode: Mode; decision: "blocked" | "approved" }) {
-  const isBlocked = decision === "blocked";
+function ResolvedStep({ mode, decision }: { mode: Mode; decision: Decision }) {
+  const isBlocked = decision === "blocked" || decision === "ai-blocked";
+  const isAiBlocked = decision === "ai-blocked";
 
   return (
     <PhoneShell hideNav>
@@ -259,9 +306,11 @@ function ResolvedStep({ mode, decision }: { mode: Mode; decision: "blocked" | "a
             {isBlocked ? "Transaction blocked" : "Transaction approved"}
           </h1>
           <p className="mt-3 text-base text-muted-foreground max-w-xs leading-relaxed">
-            {isBlocked
-              ? "Your guardian has been notified and will check in with you shortly."
-              : "Your guardian was notified and will follow up to make sure you're safe."}
+            {isAiBlocked
+              ? "Our AI blocked this transaction on your behalf. No guardian responded in time."
+              : isBlocked
+                ? "Your guardian has been notified and will check in with you shortly."
+                : "Your guardian was notified and will follow up to make sure you're safe."}
           </p>
 
           <div className="mt-8 w-full bg-primary-soft rounded-2xl p-5 text-left space-y-4">
