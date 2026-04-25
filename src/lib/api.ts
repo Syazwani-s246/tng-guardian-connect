@@ -76,10 +76,26 @@ export function mapApiResponseToRiskScore(apiResponse: any, params: {
   amount: number;
 }) {
   const pipeline = apiResponse.pipeline;
-  const xgboostScore = pipeline?.layer1_xgboost?.score ?? 0;
+  const decision = apiResponse.decision;
+
+  // get xgboost score from pipeline if available, otherwise infer from decision
+  let xgboostScore = pipeline?.layer1_xgboost?.score ?? null;
+
+  if (xgboostScore === null) {
+    // infer from decision when pipeline not returned (bypass or clear cases)
+    if (decision === "BLOCKED") xgboostScore = 0.9;
+    else if (decision === "APPROVED" && apiResponse.bypass) xgboostScore = 0.05;
+    else if (decision === "APPROVED") xgboostScore = 0.15;
+    else xgboostScore = 0.5;
+  }
+
+  // also get from layer1 directly if present
+  if (apiResponse.layer1) {
+    xgboostScore = apiResponse.layer1.score ?? xgboostScore;
+  }
+
   const riskScore = Math.round(xgboostScore * 100);
 
-  const decision = apiResponse.decision;
   const isBlocked = decision === "BLOCKED";
   const isHold = decision === "HOLD";
 
@@ -87,7 +103,7 @@ export function mapApiResponseToRiskScore(apiResponse: any, params: {
     riskScore <= 30 ? "Low" :
     riskScore <= 60 ? "Medium" : "High";
 
-  // build reasons from pipeline
+  // build reasons
   const reasons: string[] = [];
 
   if (pipeline?.layer2_bedrock?.evidence_used?.length > 0) {
@@ -97,12 +113,17 @@ export function mapApiResponseToRiskScore(apiResponse: any, params: {
   }
 
   if (pipeline?.layer3_qwen?.guardrailNotes &&
-      pipeline.layer3_qwen.guardrailNotes !== "All checks passed.") {
+    pipeline.layer3_qwen.guardrailNotes !== "All checks passed.") {
     reasons.push(`Guardrail: ${pipeline.layer3_qwen.guardrailNotes}`);
   }
 
+  // fallback reason from API
+  if (reasons.length === 0 && apiResponse.reason) {
+    reasons.push(apiResponse.reason);
+  }
+
   if (reasons.length === 0) {
-    reasons.push(apiResponse.reason ?? "Transaction analysed by GOGuardian AI");
+    reasons.push("Transaction analysed by GOGuardian AI");
   }
 
   return {
@@ -117,7 +138,11 @@ export function mapApiResponseToRiskScore(apiResponse: any, params: {
     isHold,
     reasonBM: apiResponse.reasonBM,
     reasons,
-    pipeline,
-    guardrailVerdict: pipeline?.layer3_qwen?.verdict,
+    pipeline: pipeline ?? {
+      layer1_xgboost: apiResponse.layer1 ?? { score: xgboostScore, verdict: decision === "BLOCKED" ? "RISKY" : "SAFE" },
+      layer2_bedrock: null,
+      layer3_qwen: null,
+    },
+    guardrailVerdict: pipeline?.layer3_qwen?.verdict ?? null,
   };
 }

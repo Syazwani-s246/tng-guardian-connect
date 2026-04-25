@@ -9,18 +9,25 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as TrusteesRouteImport } from './routes/trustees'
 import { Route as TransferRouteImport } from './routes/transfer'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as RiskScoreRouteImport } from './routes/risk-score'
 import { Route as PaymentSuccessRouteImport } from './routes/payment-success'
 import { Route as MeRouteImport } from './routes/me'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as InboxRouteImport } from './routes/inbox'
 import { Route as HomeRouteImport } from './routes/home'
 import { Route as BlockedRouteImport } from './routes/blocked'
 import { Route as AlertRouteImport } from './routes/alert'
 import { Route as AiMonitorRouteImport } from './routes/ai-monitor'
 import { Route as IndexRouteImport } from './routes/index'
 
+const TrusteesRoute = TrusteesRouteImport.update({
+  id: '/trustees',
+  path: '/trustees',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TransferRoute = TransferRouteImport.update({
   id: '/transfer',
   path: '/transfer',
@@ -49,6 +56,11 @@ const MeRoute = MeRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InboxRoute = InboxRouteImport.update({
+  id: '/inbox',
+  path: '/inbox',
   getParentRoute: () => rootRouteImport,
 } as any)
 const HomeRoute = HomeRouteImport.update({
@@ -83,12 +95,14 @@ export interface FileRoutesByFullPath {
   '/alert': typeof AlertRoute
   '/blocked': typeof BlockedRoute
   '/home': typeof HomeRoute
+  '/inbox': typeof InboxRoute
   '/login': typeof LoginRoute
   '/me': typeof MeRoute
   '/payment-success': typeof PaymentSuccessRoute
   '/risk-score': typeof RiskScoreRoute
   '/settings': typeof SettingsRoute
   '/transfer': typeof TransferRoute
+  '/trustees': typeof TrusteesRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -96,12 +110,14 @@ export interface FileRoutesByTo {
   '/alert': typeof AlertRoute
   '/blocked': typeof BlockedRoute
   '/home': typeof HomeRoute
+  '/inbox': typeof InboxRoute
   '/login': typeof LoginRoute
   '/me': typeof MeRoute
   '/payment-success': typeof PaymentSuccessRoute
   '/risk-score': typeof RiskScoreRoute
   '/settings': typeof SettingsRoute
   '/transfer': typeof TransferRoute
+  '/trustees': typeof TrusteesRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -110,12 +126,14 @@ export interface FileRoutesById {
   '/alert': typeof AlertRoute
   '/blocked': typeof BlockedRoute
   '/home': typeof HomeRoute
+  '/inbox': typeof InboxRoute
   '/login': typeof LoginRoute
   '/me': typeof MeRoute
   '/payment-success': typeof PaymentSuccessRoute
   '/risk-score': typeof RiskScoreRoute
   '/settings': typeof SettingsRoute
   '/transfer': typeof TransferRoute
+  '/trustees': typeof TrusteesRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -125,12 +143,14 @@ export interface FileRouteTypes {
     | '/alert'
     | '/blocked'
     | '/home'
+    | '/inbox'
     | '/login'
     | '/me'
     | '/payment-success'
     | '/risk-score'
     | '/settings'
     | '/transfer'
+    | '/trustees'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -138,12 +158,14 @@ export interface FileRouteTypes {
     | '/alert'
     | '/blocked'
     | '/home'
+    | '/inbox'
     | '/login'
     | '/me'
     | '/payment-success'
     | '/risk-score'
     | '/settings'
     | '/transfer'
+    | '/trustees'
   id:
     | '__root__'
     | '/'
@@ -151,12 +173,14 @@ export interface FileRouteTypes {
     | '/alert'
     | '/blocked'
     | '/home'
+    | '/inbox'
     | '/login'
     | '/me'
     | '/payment-success'
     | '/risk-score'
     | '/settings'
     | '/transfer'
+    | '/trustees'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -165,16 +189,25 @@ export interface RootRouteChildren {
   AlertRoute: typeof AlertRoute
   BlockedRoute: typeof BlockedRoute
   HomeRoute: typeof HomeRoute
+  InboxRoute: typeof InboxRoute
   LoginRoute: typeof LoginRoute
   MeRoute: typeof MeRoute
   PaymentSuccessRoute: typeof PaymentSuccessRoute
   RiskScoreRoute: typeof RiskScoreRoute
   SettingsRoute: typeof SettingsRoute
   TransferRoute: typeof TransferRoute
+  TrusteesRoute: typeof TrusteesRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/trustees': {
+      id: '/trustees'
+      path: '/trustees'
+      fullPath: '/trustees'
+      preLoaderRoute: typeof TrusteesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/transfer': {
       id: '/transfer'
       path: '/transfer'
@@ -215,6 +248,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/inbox': {
+      id: '/inbox'
+      path: '/inbox'
+      fullPath: '/inbox'
+      preLoaderRoute: typeof InboxRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/home': {
@@ -261,12 +301,14 @@ const rootRouteChildren: RootRouteChildren = {
   AlertRoute: AlertRoute,
   BlockedRoute: BlockedRoute,
   HomeRoute: HomeRoute,
+  InboxRoute: InboxRoute,
   LoginRoute: LoginRoute,
   MeRoute: MeRoute,
   PaymentSuccessRoute: PaymentSuccessRoute,
   RiskScoreRoute: RiskScoreRoute,
   SettingsRoute: SettingsRoute,
   TransferRoute: TransferRoute,
+  TrusteesRoute: TrusteesRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
