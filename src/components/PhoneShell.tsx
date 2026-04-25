@@ -8,9 +8,10 @@ interface PhoneShellProps {
   showBack?: boolean;
   backTo?: string;
   hideNav?: boolean;
+  notification?: ReactNode;
 }
 
-export function PhoneShell({ children, title, showBack, backTo = "/", hideNav }: PhoneShellProps) {
+export function PhoneShell({ children, title, showBack, backTo = "/", hideNav, notification }: PhoneShellProps) {
   return (
     <div className="min-h-screen bg-secondary flex justify-center">
       <div className="w-full max-w-[390px] bg-background min-h-screen flex flex-col relative shadow-elevated">
@@ -37,6 +38,13 @@ export function PhoneShell({ children, title, showBack, backTo = "/", hideNav }:
             )}
             {title && <h1 className="text-lg font-semibold">{title}</h1>}
           </header>
+        )}
+
+        {/* Push notification overlay — sits below status bar (top-11) inside the phone frame */}
+        {notification && (
+          <div className="absolute top-11 left-0 right-0 z-50 px-3 pt-2 pointer-events-none">
+            {notification}
+          </div>
         )}
 
         {/* Content */}

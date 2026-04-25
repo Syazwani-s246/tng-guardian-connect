@@ -55,7 +55,7 @@ function RiskScoreScreen() {
   if (!tx) return null;
 
   const { risk_score, risk_level, reasons, recipient_name, amount,
-    recipient_phone, isBlocked, isHold, reasonBM, guardrailVerdict, pipeline } = tx;
+    recipient_phone, isBlocked, isHold, guardrailVerdict, pipeline } = tx;
 
   const riskColor = risk_score <= 30 ? "text-green-600" : risk_score <= 60 ? "text-amber-500" : "text-red-500";
   const riskBg = risk_score <= 30 ? "bg-green-50 border-green-200" : risk_score <= 60 ? "bg-amber-50 border-amber-200" : "bg-red-50 border-red-200";
@@ -87,7 +87,7 @@ function RiskScoreScreen() {
         {/* Result banner */}
         {isBlocked ? (
           <div className="rounded-2xl bg-red-50 border border-red-200 px-5 py-4 flex items-center gap-3">
-            <span className="text-2xl">🚫</span>
+            <span className="flex items-center justify-center w-8 h-8 rounded-full bg-red-100 text-red-700 font-bold text-lg shrink-0">X</span>
             <div>
               <p className="font-bold text-red-700">Transaction Auto-Blocked</p>
               <p className="text-xs text-red-600 mt-0.5">GOGuardian AI blocked this transfer to protect you.</p>
@@ -95,27 +95,21 @@ function RiskScoreScreen() {
           </div>
         ) : isHold ? (
           <div className="rounded-2xl bg-amber-50 border border-amber-200 px-5 py-4 flex items-center gap-3">
-            <span className="text-2xl">⏳</span>
+            <span className="flex items-center justify-center w-8 h-8 rounded-full bg-amber-100 text-amber-700 font-bold text-sm shrink-0">HOLD</span>
             <div>
               <p className="font-bold text-amber-700">Transaction On Hold</p>
-              <p className="text-xs text-amber-600 mt-0.5">GOGuardian AI is reviewing this transfer.</p>
+              <p className="text-xs text-amber-600 mt-0.5">GOGuardian AI flagged this transfer as medium risk.</p>
             </div>
           </div>
         ) : (
           <div className="rounded-2xl bg-green-50 border border-green-200 px-5 py-4 flex items-center gap-3">
-            <span className="text-2xl">✅</span>
+            <svg className="w-8 h-8 shrink-0 text-green-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
             <div>
               <p className="font-bold text-green-700">Transaction Approved</p>
               <p className="text-xs text-green-600 mt-0.5">Risk is within acceptable range.</p>
             </div>
-          </div>
-        )}
-
-        {/* BM explanation for elderly */}
-        {reasonBM && (
-          <div className="rounded-2xl bg-blue-50 border border-blue-200 px-5 py-4">
-            <p className="text-xs font-semibold text-blue-700 mb-1">Penjelasan GOGuardian</p>
-            <p className="text-sm text-blue-800">{reasonBM}</p>
           </div>
         )}
 
@@ -158,15 +152,26 @@ function RiskScoreScreen() {
         )}
 
         {/* Actions */}
-        {isBlocked || isHold ? (
+        {isBlocked ? (
           <Button size="lg" className="w-full h-14 text-base font-semibold rounded-2xl"
             onClick={() => navigate({ to: "/home" })}>
             Back to Home
           </Button>
+        ) : isHold ? (
+          <div className="space-y-3">
+            <Button size="lg" className="w-full h-14 text-base font-semibold rounded-2xl"
+              onClick={() => navigate({ to: "/payment-success" })}>
+              Proceed Anyway
+            </Button>
+            <Button size="lg" variant="outline" className="w-full h-14 text-base font-semibold rounded-2xl border-2"
+              onClick={() => navigate({ to: "/home" })}>
+              Cancel Transaction
+            </Button>
+          </div>
         ) : (
           <div className="space-y-3">
             <Button size="lg" className="w-full h-14 text-base font-semibold rounded-2xl"
-              onClick={() => navigate({ to: "/home" })}>
+              onClick={() => navigate({ to: "/payment-success" })}>
               Proceed with Transfer
             </Button>
             <Button size="lg" variant="outline" className="w-full h-14 text-base font-semibold rounded-2xl border-2"

@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as TransferRouteImport } from './routes/transfer'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as RiskScoreRouteImport } from './routes/risk-score'
+import { Route as PaymentSuccessRouteImport } from './routes/payment-success'
 import { Route as MeRouteImport } from './routes/me'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as HomeRouteImport } from './routes/home'
@@ -33,6 +34,11 @@ const SettingsRoute = SettingsRouteImport.update({
 const RiskScoreRoute = RiskScoreRouteImport.update({
   id: '/risk-score',
   path: '/risk-score',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PaymentSuccessRoute = PaymentSuccessRouteImport.update({
+  id: '/payment-success',
+  path: '/payment-success',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MeRoute = MeRouteImport.update({
@@ -79,6 +85,7 @@ export interface FileRoutesByFullPath {
   '/home': typeof HomeRoute
   '/login': typeof LoginRoute
   '/me': typeof MeRoute
+  '/payment-success': typeof PaymentSuccessRoute
   '/risk-score': typeof RiskScoreRoute
   '/settings': typeof SettingsRoute
   '/transfer': typeof TransferRoute
@@ -91,6 +98,7 @@ export interface FileRoutesByTo {
   '/home': typeof HomeRoute
   '/login': typeof LoginRoute
   '/me': typeof MeRoute
+  '/payment-success': typeof PaymentSuccessRoute
   '/risk-score': typeof RiskScoreRoute
   '/settings': typeof SettingsRoute
   '/transfer': typeof TransferRoute
@@ -104,6 +112,7 @@ export interface FileRoutesById {
   '/home': typeof HomeRoute
   '/login': typeof LoginRoute
   '/me': typeof MeRoute
+  '/payment-success': typeof PaymentSuccessRoute
   '/risk-score': typeof RiskScoreRoute
   '/settings': typeof SettingsRoute
   '/transfer': typeof TransferRoute
@@ -118,6 +127,7 @@ export interface FileRouteTypes {
     | '/home'
     | '/login'
     | '/me'
+    | '/payment-success'
     | '/risk-score'
     | '/settings'
     | '/transfer'
@@ -130,6 +140,7 @@ export interface FileRouteTypes {
     | '/home'
     | '/login'
     | '/me'
+    | '/payment-success'
     | '/risk-score'
     | '/settings'
     | '/transfer'
@@ -142,6 +153,7 @@ export interface FileRouteTypes {
     | '/home'
     | '/login'
     | '/me'
+    | '/payment-success'
     | '/risk-score'
     | '/settings'
     | '/transfer'
@@ -155,6 +167,7 @@ export interface RootRouteChildren {
   HomeRoute: typeof HomeRoute
   LoginRoute: typeof LoginRoute
   MeRoute: typeof MeRoute
+  PaymentSuccessRoute: typeof PaymentSuccessRoute
   RiskScoreRoute: typeof RiskScoreRoute
   SettingsRoute: typeof SettingsRoute
   TransferRoute: typeof TransferRoute
@@ -181,6 +194,13 @@ declare module '@tanstack/react-router' {
       path: '/risk-score'
       fullPath: '/risk-score'
       preLoaderRoute: typeof RiskScoreRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/payment-success': {
+      id: '/payment-success'
+      path: '/payment-success'
+      fullPath: '/payment-success'
+      preLoaderRoute: typeof PaymentSuccessRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/me': {
@@ -243,6 +263,7 @@ const rootRouteChildren: RootRouteChildren = {
   HomeRoute: HomeRoute,
   LoginRoute: LoginRoute,
   MeRoute: MeRoute,
+  PaymentSuccessRoute: PaymentSuccessRoute,
   RiskScoreRoute: RiskScoreRoute,
   SettingsRoute: SettingsRoute,
   TransferRoute: TransferRoute,
