@@ -11,7 +11,7 @@ import {
   Users,
   UsersRound,
 } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 type Mode = "family" | "community" | "ai";
 type Step = "alert" | "notify" | "resolved";
@@ -66,6 +66,36 @@ function DemoBadge({ mode }: { mode: Mode }) {
   );
 }
 
+function useCountdown(totalSeconds: number, speedMultiplier = 1) {
+  const [remaining, setRemaining] = useState(totalSeconds);
+  useEffect(() => {
+    setRemaining(totalSeconds);
+    const interval = 1000 / speedMultiplier;
+    const id = setInterval(() => {
+      setRemaining((s) => Math.max(0, s - 1));
+    }, interval);
+    return () => clearInterval(id);
+  }, [totalSeconds, speedMultiplier]);
+  const mins = String(Math.floor(remaining / 60)).padStart(2, "0");
+  const secs = String(remaining % 60).padStart(2, "0");
+  return { display: `${mins}:${secs}`, remaining };
+}
+
+function CountdownBlock() {
+  const { display, remaining } = useCountdown(90, 10);
+  const urgent = remaining <= 20;
+  return (
+    <div className="mt-4 flex flex-col items-center gap-1">
+      <span className={`text-3xl font-mono font-bold tabular-nums ${urgent ? "text-destructive" : "text-foreground"}`}>
+        {display}
+      </span>
+      <p className="text-xs text-muted-foreground text-center">
+        Guardian has 1.5 minutes to respond. AI will decide if no response.
+      </p>
+    </div>
+  );
+}
+
 function AlertStep({ mode }: { mode: Mode }) {
   return (
     <PhoneShell title="Transaction Review" showBack backTo="/guardian">
@@ -84,7 +114,7 @@ function AlertStep({ mode }: { mode: Mode }) {
             <span className="text-sm text-muted-foreground">.00</span>
           </div>
 
-          <div className="mt-5 flex items-center gap-3 py-3 border-y border-border">
+          <Link to="/recipient-detail" className="mt-5 flex items-center gap-3 py-3 border-y border-border">
             <div className="w-12 h-12 rounded-full bg-destructive-soft flex items-center justify-center text-destructive font-bold">
               ?
             </div>
@@ -93,7 +123,7 @@ function AlertStep({ mode }: { mode: Mode }) {
               <p className="text-xs text-muted-foreground truncate">+60 1•-•••• 2847 · First time</p>
             </div>
             <ArrowRight className="text-muted-foreground" size={18} />
-          </div>
+          </Link>
 
           <div className="mt-4 bg-warning-soft/60 rounded-xl p-4">
             <p className="text-sm text-foreground leading-relaxed">
@@ -104,6 +134,8 @@ function AlertStep({ mode }: { mode: Mode }) {
               Mengapa kami menanda ini: Penerima baru dan jumlahnya lebih tinggi daripada biasa.
             </p>
           </div>
+
+          <CountdownBlock />
         </div>
 
         <div className="mt-6 space-y-3">
