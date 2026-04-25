@@ -3,6 +3,10 @@ import { PhoneShell } from "@/components/PhoneShell";
 import { Button } from "@/components/ui/button";
 import { getDemoTransaction } from "@/lib/api";
 import { useEffect, useState } from "react";
+import { AlertTriangle, AlertCircle, ShieldCheck, Loader2 } from "lucide-react";
+import type { ScamCheckResponse } from "@/components/ScamWarningCard";
+import { sampleComplaints } from "@/data/sampleComplaints";
+import { classifyRiskLevel } from "@/backend/functions/scamCheck";
 
 export const Route = createFileRoute("/risk-score")({
   head: () => ({
@@ -92,9 +96,58 @@ function RiskGauge({ score }: { score: number }) {
 function RiskScoreScreen() {
   const navigate = useNavigate();
   const [tx, setTx] = useState<DemoTransaction | null>(null);
+  const [scamResult, setScamResult] = useState<ScamCheckResponse | null>(null);
+  const [scamLoading, setScamLoading] = useState(false);
 
   useEffect(() => {
-    getDemoTransaction().then(setTx);
+    getDemoTransaction().then((data) => {
+      setTx(data);
+      setScamLoading(true);
+
+      // Try API first (Vite proxy in dev, same origin in prod)
+      fetch("/receiver/scam-check", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ receiverPhone: data.recipient_phone }),
+      })
+        .then((res) => {
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          return res.json();
+        })
+        .then((result) => setScamResult(result))
+        .catch(() => {
+          // Fallback to local sample data if API is unreachable
+          const complaints = sampleComplaints.filter(
+            (c) => c.receiverPhone === data.recipient_phone,
+          );
+          const complaintCount = complaints.length;
+          const riskLevel = classifyRiskLevel(complaintCount);
+
+          const warningEN =
+            complaintCount === 0
+              ? "No complaints found against this receiver. This receiver appears safe."
+              : complaintCount <= 2
+                ? `This receiver has ${complaintCount} complaint${complaintCount !== 1 ? "s" : ""} from other users. Proceed with caution.`
+                : `Warning: This receiver has ${complaintCount} complaints filed against them by other users. High risk of scam. We strongly advise against proceeding.`;
+
+          const warningBM =
+            complaintCount === 0
+              ? "Tiada aduan ditemui terhadap penerima ini. Penerima ini kelihatan selamat."
+              : complaintCount <= 2
+                ? `Penerima ini mempunyai ${complaintCount} aduan daripada pengguna lain. Sila berhati-hati.`
+                : `Amaran: Penerima ini mempunyai ${complaintCount} aduan daripada pengguna lain. Risiko tinggi penipuan. Kami sangat menasihatkan agar tidak meneruskan.`;
+
+          setScamResult({
+            receiverPhone: data.recipient_phone,
+            complaintCount,
+            riskLevel,
+            warningEN,
+            warningBM,
+            error: false,
+          });
+        })
+        .finally(() => setScamLoading(false));
+    });
   }, []);
 
   if (!tx) return null;
@@ -182,6 +235,60 @@ function RiskScoreScreen() {
             ))}
           </ul>
         </div>
+
+        {/* Receiver Complaint Check (AI Scam Check) */}
+        {scamLoading ? (
+          <div className="rounded-2xl border border-border bg-card px-5 py-4 flex items-center gap-3">
+            <Loader2 className="h-5 w-5 animate-spin text-primary" />
+            <p className="text-sm text-muted-foreground">Checking receiver history...</p>
+          </div>
+        ) : scamResult ? (
+          <div
+            className={`rounded-2xl border px-5 py-4 space-y-3 ${
+              scamResult.error
+                ? "bg-amber-50 border-amber-200"
+                : scamResult.riskLevel === "HIGH"
+                  ? "bg-red-50 border-red-200"
+                  : scamResult.riskLevel === "MEDIUM"
+                    ? "bg-amber-50 border-amber-200"
+                    : "bg-green-50 border-green-200"
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              {scamResult.error || scamResult.riskLevel === "MEDIUM" ? (
+                <AlertCircle className="h-4 w-4 text-amber-600 shrink-0" />
+              ) : scamResult.riskLevel === "HIGH" ? (
+                <AlertTriangle className="h-4 w-4 text-red-500 shrink-0" />
+              ) : (
+                <ShieldCheck className="h-4 w-4 text-green-600 shrink-0" />
+              )}
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                Receiver Complaint Check
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <span
+                className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-semibold ${
+                  scamResult.error
+                    ? "bg-amber-100 text-amber-800"
+                    : scamResult.riskLevel === "HIGH"
+                      ? "bg-red-100 text-red-800"
+                      : scamResult.riskLevel === "MEDIUM"
+                        ? "bg-amber-100 text-amber-800"
+                        : "bg-green-100 text-green-800"
+                }`}
+              >
+                {scamResult.riskLevel} RISK
+              </span>
+              <span className="text-sm text-foreground">
+                {scamResult.complaintCount >= 0
+                  ? `${scamResult.complaintCount} complaint${scamResult.complaintCount !== 1 ? "s" : ""} filed`
+                  : "Unable to retrieve complaints"}
+              </span>
+            </div>
+            <p className="text-sm text-foreground">{scamResult.warningEN}</p>
+          </div>
+        ) : null}
 
         {/* Action */}
         {isBlocked ? (

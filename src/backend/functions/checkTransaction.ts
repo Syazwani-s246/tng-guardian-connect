@@ -113,6 +113,9 @@ export async function checkTransaction(event: {
       reasonBM: "Penerima dikenali. Transaksi diluluskan secara automatik.",
       timestamp,
       reported: false,
+      layer1_xgboost: null,
+      layer2_llm: null,
+      layer3_guardrail: null,
     };
 
     await dynamo.send(new PutCommand({ TableName: TABLES.TRANSACTIONS, Item: txn }));
@@ -160,7 +163,9 @@ export async function checkTransaction(event: {
       reasonBM: "Transaksi ini selamat. Tiada aktiviti mencurigakan dikesan.",
       timestamp,
       reported: false,
-      timerExpiry: null,
+      layer1_xgboost: layer1Result,
+      layer2_llm: null,
+      layer3_guardrail: null,
     };
 
     await dynamo.send(new PutCommand({ TableName: TABLES.TRANSACTIONS, Item: txn }));
@@ -189,7 +194,9 @@ export async function checkTransaction(event: {
       reasonBM: "Transaksi ini disekat kerana risiko tinggi dikesan. Sila hubungi sokongan TNG jika anda memerlukannya.",
       timestamp,
       reported: false,
-      timerExpiry: null,
+      layer1_xgboost: layer1Result,
+      layer2_llm: null,
+      layer3_guardrail: null,
     };
 
     await dynamo.send(new PutCommand({ TableName: TABLES.TRANSACTIONS, Item: txn }));
@@ -243,7 +250,9 @@ export async function checkTransaction(event: {
       reasonBM: "Sistem AI tidak dapat membuat keputusan. Transaksi ditahan buat sementara.",
       timestamp,
       reported: false,
-      timerExpiry: null,
+      layer1_xgboost: layer1Result,
+      layer2_llm: { error: String(llmError) },
+      layer3_guardrail: null,
     };
     await dynamo.send(new PutCommand({ TableName: TABLES.TRANSACTIONS, Item: txn }));
     await logAudit(txnId, "AI_GUARDIAN", txn.reason, timestamp);
@@ -308,8 +317,10 @@ export async function checkTransaction(event: {
     confidence: llmDecision.confidence,
     timestamp,
     reported: false,
-    timerExpiry,
-    guardianId: user.guardianId ?? null,
+    timerExpiry: null,
+    layer1_xgboost: layer1Result,
+    layer2_llm: layer2Result,
+    layer3_guardrail: layer3Result,
   };
 
   await dynamo.send(new PutCommand({ TableName: TABLES.TRANSACTIONS, Item: txn }));

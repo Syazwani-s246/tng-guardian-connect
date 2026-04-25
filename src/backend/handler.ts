@@ -3,6 +3,7 @@ import { guardianDecision } from "./functions/guardianDecision";
 import { linkGuardian } from "./functions/linkGuardian";
 import { getAuditLog } from "./functions/getAuditLog";
 import { reportReceiver } from "./functions/reportReceiver";
+import { scamCheck } from "./functions/scamCheck";
 
 export const handler = async (event: any) => {
   const headers = {
@@ -49,6 +50,11 @@ const path = rawPath.replace(/^\/prod/, "");
     // POST /receiver/report
     else if (method === "POST" && path === "/receiver/report") {
       result = await reportReceiver(body);
+    }
+
+    // POST /receiver/scam-check
+    else if (method === "POST" && path === "/receiver/scam-check") {
+      result = await scamCheck(body);
     }
 
     else {

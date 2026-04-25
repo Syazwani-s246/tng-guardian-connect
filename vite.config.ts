@@ -10,6 +10,16 @@ export default defineConfig({
   vite: {
     server: {
       port: 8080,
+      proxy: {
+        // Proxy API calls to AWS API Gateway during local development (avoids CORS)
+        "/receiver": {
+          target:
+            process.env.VITE_API_URL ??
+            "https://vmctgel4cf.execute-api.ap-southeast-1.amazonaws.com/prod",
+          changeOrigin: true,
+          secure: true,
+        },
+      },
     },
   },
 });

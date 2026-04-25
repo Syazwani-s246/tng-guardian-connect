@@ -4,10 +4,6 @@ import {
 } from "@aws-sdk/client-bedrock-runtime";
 import type { AuditContext, AuditResult } from "@/types/transaction";
 
-const client = new BedrockRuntimeClient({
-  region: "ap-southeast-1",
-});
-
 export interface TransactionContext {
   txnId: string;
   senderId: string;
@@ -35,6 +31,12 @@ export interface BedrockDecision {
 export async function invokeGuardianLLM(
   context: TransactionContext
 ): Promise<BedrockDecision> {
+
+  // initialize inside function so it picks up runtime credentials
+  const client = new BedrockRuntimeClient({
+    region: "ap-southeast-1",
+  });
+
   const prompt = `You are GOGuardian, a financial fraud protection AI for TNG eWallet Malaysia.
 
 A transaction needs your decision. Analyze carefully.
@@ -62,7 +64,7 @@ Respond ONLY in this exact JSON format:
   "confidence": 0.0-1.0,
   "evidence_used": ["fact1 from context", "fact2 from context"],
   "reason": "English explanation citing only facts above",
-  "reasonBM": "Simple Bahasa Malaysia for elderly user (max 2 sentences)",
+  "reasonBM": "Simple Bahasa Malaysia for elderly user (max 2 sentences)"
 }`;
 
   const command = new InvokeModelCommand({
@@ -75,30 +77,29 @@ Respond ONLY in this exact JSON format:
           role: "user",
           content: [{ text: prompt }],
         },
-    ],
-    inferenceConfig: {
-    maxTokens: 300,
-    temperature: 0.3,
-    },
-  }),
+      ],
+      inferenceConfig: {
+        maxTokens: 300,
+        temperature: 0.3,
+      },
+    }),
   });
 
-  const response = await client.send(command);
-  const raw = JSON.parse(new TextDecoder().decode(response.body));
-  const text = raw.output.message.content[0].text;
-
   try {
-    // Titan sometimes wraps response in text before the JSON — extract it
+    const response = await client.send(command);
+    const raw = JSON.parse(new TextDecoder().decode(response.body));
+    const text = raw.output.message.content[0].text;
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (!jsonMatch) throw new Error("No JSON found in response");
     return JSON.parse(jsonMatch[0]);
-  } catch {
+  } catch (error) {
+    console.error("Bedrock LLM error:", error);
     return {
       decision: "HOLD",
-      reason: "LLM response parsing failed, defaulting to HOLD for safety",
-      reasonBM:
-        "Sistem tidak dapat mengesahkan transaksi ini. Sila tunggu kelulusan penjaga anda.",
       confidence: 0.5,
+      evidence_used: [],
+      reason: "LLM response parsing failed, defaulting to HOLD for safety",
+      reasonBM: "Sistem tidak dapat mengesahkan transaksi ini. Sila tunggu kelulusan penjaga anda.",
     };
   }
 }

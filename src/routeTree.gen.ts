@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TransferRouteImport } from './routes/transfer'
 import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as ScamCheckRouteImport } from './routes/scam-check'
 import { Route as RiskScoreRouteImport } from './routes/risk-score'
 import { Route as MeRouteImport } from './routes/me'
 import { Route as LoginRouteImport } from './routes/login'
@@ -28,6 +29,11 @@ const TransferRoute = TransferRouteImport.update({
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ScamCheckRoute = ScamCheckRouteImport.update({
+  id: '/scam-check',
+  path: '/scam-check',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RiskScoreRoute = RiskScoreRouteImport.update({
@@ -80,6 +86,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/me': typeof MeRoute
   '/risk-score': typeof RiskScoreRoute
+  '/scam-check': typeof ScamCheckRoute
   '/settings': typeof SettingsRoute
   '/transfer': typeof TransferRoute
 }
@@ -92,6 +99,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/me': typeof MeRoute
   '/risk-score': typeof RiskScoreRoute
+  '/scam-check': typeof ScamCheckRoute
   '/settings': typeof SettingsRoute
   '/transfer': typeof TransferRoute
 }
@@ -105,6 +113,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/me': typeof MeRoute
   '/risk-score': typeof RiskScoreRoute
+  '/scam-check': typeof ScamCheckRoute
   '/settings': typeof SettingsRoute
   '/transfer': typeof TransferRoute
 }
@@ -119,6 +128,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/me'
     | '/risk-score'
+    | '/scam-check'
     | '/settings'
     | '/transfer'
   fileRoutesByTo: FileRoutesByTo
@@ -131,6 +141,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/me'
     | '/risk-score'
+    | '/scam-check'
     | '/settings'
     | '/transfer'
   id:
@@ -143,6 +154,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/me'
     | '/risk-score'
+    | '/scam-check'
     | '/settings'
     | '/transfer'
   fileRoutesById: FileRoutesById
@@ -156,6 +168,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   MeRoute: typeof MeRoute
   RiskScoreRoute: typeof RiskScoreRoute
+  ScamCheckRoute: typeof ScamCheckRoute
   SettingsRoute: typeof SettingsRoute
   TransferRoute: typeof TransferRoute
 }
@@ -174,6 +187,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/scam-check': {
+      id: '/scam-check'
+      path: '/scam-check'
+      fullPath: '/scam-check'
+      preLoaderRoute: typeof ScamCheckRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/risk-score': {
@@ -244,6 +264,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   MeRoute: MeRoute,
   RiskScoreRoute: RiskScoreRoute,
+  ScamCheckRoute: ScamCheckRoute,
   SettingsRoute: SettingsRoute,
   TransferRoute: TransferRoute,
 }
