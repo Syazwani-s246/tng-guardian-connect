@@ -1,6 +1,5 @@
-<<<<<<< HEAD
 import { useState } from "react";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
 import { PhoneShell } from "@/components/PhoneShell";
@@ -46,26 +45,16 @@ export function getBlockedCount(transactions: TransactionRecord[]): number {
     (t) => t.decision === "BLOCKED" || t.decision === "BLOCK",
   ).length;
 }
-=======
-import { createFileRoute } from "@tanstack/react-router";
-import { PhoneShell } from "@/components/PhoneShell";
-import { Bot, CheckCircle2, AlertTriangle, Activity } from "lucide-react";
->>>>>>> 4bd21fef96de283cf848fb04a3ea587d84c762ad
 
 export const Route = createFileRoute("/ai-monitor")({
   head: () => ({
     meta: [
-<<<<<<< HEAD
       { title: "AI Guardian — GOGuardian" },
       {
         name: "description",
         content:
           "AI monitors your transactions in real time and flags suspicious activity.",
       },
-=======
-      { title: "AI Activity — TNG eWallet" },
-      { name: "description", content: "GOGuardian AI monitors your transactions in real time." },
->>>>>>> 4bd21fef96de283cf848fb04a3ea587d84c762ad
     ],
   }),
   component: AIMonitor,
@@ -224,25 +213,12 @@ function AIMonitor() {
             </div>
           )}
         </div>
-<<<<<<< HEAD
-
-        <Button
-          asChild
-          size="lg"
-          className="w-full h-14 text-base font-semibold rounded-2xl shadow-card"
-        >
-          <Link to="/demo" search={{ mode: "ai", step: "alert" } as never}>
-            Try a demo alert
-          </Link>
-        </Button>
 
         <TransactionReview
           transaction={selectedTransaction}
           open={sheetOpen}
           onOpenChange={setSheetOpen}
         />
-=======
->>>>>>> 4bd21fef96de283cf848fb04a3ea587d84c762ad
       </div>
     </PhoneShell>
   );
