@@ -1,5 +1,4 @@
-// Telegram Bot credentials (hackathon)
-const TELEGRAM_BOT_TOKEN = "8604857758:AAH7na8bwLDFBglI6pXCT2CYIrspIJ5V6iE";
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN!;
 
 interface TelegramWebhookEvent {
   body: string;
