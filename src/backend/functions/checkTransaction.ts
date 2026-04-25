@@ -1,6 +1,7 @@
 import { GetCommand, PutCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
 import { dynamo, TABLES } from "../lib/dynamodb";
-import { invokeGuardianLLM, TransactionContext } from "../lib/bedrock";
+import { invokeGuardianLLM, invokeAuditorLLM, TransactionContext } from "../lib/bedrock";
+import type { AuditContext } from "@/types/transaction";
 import { v4 as uuidv4 } from "uuid";
 
 // Simulates XGBoost risk scoring
@@ -96,6 +97,10 @@ export async function checkTransaction(event: {
       reasonBM: "Penerima dikenali. Transaksi diluluskan.",
       timestamp,
       reported: false,
+      auditVerdict: null,
+      auditReason: null,
+      auditReasonBM: null,
+      consistencyScore: null,
     };
 
     await dynamo.send(new PutCommand({ TableName: TABLES.TRANSACTIONS, Item: txn }));
@@ -126,6 +131,10 @@ export async function checkTransaction(event: {
       timestamp,
       reported: false,
       timerExpiry: null,
+      auditVerdict: null,
+      auditReason: null,
+      auditReasonBM: null,
+      consistencyScore: null,
     };
     await dynamo.send(new PutCommand({ TableName: TABLES.TRANSACTIONS, Item: txn }));
     await logAudit(txnId, "XGBOOST", txn.reason, timestamp);
@@ -143,6 +152,10 @@ export async function checkTransaction(event: {
       timestamp,
       reported: false,
       timerExpiry: null,
+      auditVerdict: null,
+      auditReason: null,
+      auditReasonBM: null,
+      consistencyScore: null,
     };
     await dynamo.send(new PutCommand({ TableName: TABLES.TRANSACTIONS, Item: txn }));
     await logAudit(txnId, "XGBOOST", txn.reason, timestamp);
@@ -168,6 +181,19 @@ export async function checkTransaction(event: {
 
     const llmDecision = await invokeGuardianLLM(context);
 
+    const auditContext: AuditContext = {
+      txnId,
+      transactionDetails: {
+        amount,
+        receiverPhone,
+        receiverName,
+        xgboostScore,
+        strikeCount,
+      },
+      layer2Decision: llmDecision,
+    };
+    const auditResult = await invokeAuditorLLM(auditContext);
+
     const txn = {
       txnId, senderId, receiverPhone, receiverName, amount,
       riskScore: xgboostScore,
@@ -179,6 +205,10 @@ export async function checkTransaction(event: {
       timestamp,
       reported: false,
       timerExpiry: null,
+      auditVerdict: auditResult.auditVerdict,
+      auditReason: auditResult.auditReason,
+      auditReasonBM: auditResult.auditReasonBM,
+      consistencyScore: auditResult.consistencyScore,
     };
     await dynamo.send(new PutCommand({ TableName: TABLES.TRANSACTIONS, Item: txn }));
     await logAudit(txnId, "AI_GUARDIAN", llmDecision.reason, timestamp);
@@ -197,6 +227,10 @@ export async function checkTransaction(event: {
     reported: false,
     timerExpiry,
     guardianId: user.guardianId ?? null,
+    auditVerdict: null,
+    auditReason: null,
+    auditReasonBM: null,
+    consistencyScore: null,
   };
   await dynamo.send(new PutCommand({ TableName: TABLES.TRANSACTIONS, Item: txn }));
   await logAudit(txnId, "AWAITING_GUARDIAN", txn.reason, timestamp);

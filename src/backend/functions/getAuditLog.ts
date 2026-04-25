@@ -31,9 +31,14 @@ export async function getAuditLog(event: { userId: string }) {
       reason: t.reason,
       reasonBM: t.reasonBM,
       riskScore: t.riskScore,
+      confidence: t.confidence ?? null,
       timestamp: t.timestamp,
       reported: t.reported ?? false,
       canReport: !t.reported && isWithin7Days(t.timestamp),
+      auditVerdict: t.auditVerdict ?? null,
+      auditReason: t.auditReason ?? null,
+      auditReasonBM: t.auditReasonBM ?? null,
+      consistencyScore: t.consistencyScore ?? null,
     })),
   };
 }
