@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { PhoneShell } from "@/components/PhoneShell";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
-import { lastTransactionResult } from "./transfer";
+import { transactionStore  } from "./transfer";
 
 export const Route = createFileRoute("/risk-score")({
   head: () => ({
@@ -44,8 +44,8 @@ function RiskScoreScreen() {
   const [tx, setTx] = useState<any>(null);
 
   useEffect(() => {
-    if (lastTransactionResult) {
-      setTx(lastTransactionResult);
+  if (transactionStore.result) {
+    setTx(transactionStore.result);
     } else {
       // fallback to mock if navigated directly
       navigate({ to: "/transfer" });

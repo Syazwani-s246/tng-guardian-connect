@@ -15,7 +15,7 @@ export const Route = createFileRoute("/transfer")({
 type Stage = "form" | "analysing";
 
 // global store for passing data between routes (simple for hackathon)
-export let lastTransactionResult: any = null;
+export const transactionStore = { result: null as any };
 
 function TransferScreen() {
   const navigate = useNavigate();
@@ -31,13 +31,13 @@ function TransferScreen() {
     setError("");
 
     try {
-      const apiResponse = await checkTransaction({
+      let apiResponse = await checkTransaction({
         receiverPhone: recipient,
         receiverName: recipientName || "Unknown Recipient",
         amount: parseFloat(amount),
       });
 
-      lastTransactionResult = mapApiResponseToRiskScore(apiResponse, {
+      transactionStore.result = mapApiResponseToRiskScore(apiResponse, {
         receiverPhone: recipient,
         receiverName: recipientName || "Unknown Recipient",
         amount: parseFloat(amount),
