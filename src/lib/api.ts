@@ -146,3 +146,14 @@ export function mapApiResponseToRiskScore(apiResponse: any, params: {
     guardrailVerdict: pipeline?.layer3_qwen?.verdict ?? null,
   };
 }
+
+export async function getGuardianDecision(txnId: string): Promise<string | null> {
+  try {
+    const res = await fetch(`${API_BASE}/transaction/status/${txnId}`);
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.guardianDecision ?? null;
+  } catch {
+    return null;
+  }
+}

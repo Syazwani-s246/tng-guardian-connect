@@ -52,17 +52,31 @@ _GOGuardian AI — Melindungi pengguna yang terdedah_
 
   try {
     const res = await fetch(
-      `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          chat_id: chatId,
-          text: message,
-          parse_mode: "Markdown",
-        }),
-      }
-    );
+  `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`,
+  {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      chat_id: chatId,
+      text: message,
+      parse_mode: "Markdown",
+      reply_markup: {
+        inline_keyboard: [
+          [
+            {
+              text: "✅ Approve",
+              callback_data: `approve:${txnId}`,
+            },
+            {
+              text: "🚫 Block",
+              callback_data: `block:${txnId}`,
+            },
+          ],
+        ],
+      },
+    }),
+  }
+);
 
     if (!res.ok) {
       const err = await res.text();
