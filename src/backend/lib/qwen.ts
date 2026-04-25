@@ -33,7 +33,7 @@ export async function runGuardrail(
 
   // initialize INSIDE the function so env vars are loaded at runtime
   const client = new OpenAI({
-    apiKey: process.env.DASHSCOPE_API_KEY,
+    apiKey: "sk-ae101196870341359f56325882ca1acf",
     baseURL: "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
   });
 
