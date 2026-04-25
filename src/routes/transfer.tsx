@@ -3,7 +3,7 @@ import { PhoneShell } from "@/components/PhoneShell";
 import { Button } from "@/components/ui/button";
 import { ArrowRightLeft } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
-import { checkTransaction, mapApiResponseToRiskScore } from "@/lib/api";
+import { checkTransaction, mapApiResponseToRiskScore, getGuardianDecision } from "@/lib/api";
 import { walletStore } from "@/lib/walletStore";
 import mockData from "@/data/mockData.json";
 
@@ -50,6 +50,7 @@ function TransferScreen() {
   const [error, setError] = useState("");
   const [countdown, setCountdown] = useState(60);
   const [trusteeNote, setTrusteeNote] = useState("Waiting for Trustee response...");
+  const [currentTxnId, setCurrentTxnId] = useState("");
   const apiPromiseRef = useRef<Promise<any> | null>(null);
 
   // checking → first-time after 1.5s
@@ -59,7 +60,7 @@ function TransferScreen() {
     return () => clearTimeout(t);
   }, [stage]);
 
-  // first-time: start API call, then → trustee-wait after 1s
+  // first-time: start API call, capture txnId, then → trustee-wait after 1s
   useEffect(() => {
     if (stage !== "first-time") return;
     const amountNum = parseFloat(amount);
@@ -68,28 +69,60 @@ function TransferScreen() {
       receiverPhone: recipient,
       receiverName: name,
       amount: amountNum,
-    }).then((resp) =>
-      mapApiResponseToRiskScore(resp, {
+    }).then((resp) => {
+      setCurrentTxnId(resp.txnId); // capture txnId for polling
+      return mapApiResponseToRiskScore(resp, {
         receiverPhone: recipient,
         receiverName: name,
         amount: amountNum,
-      })
-    );
+      });
+    });
     const t = setTimeout(() => setStage("trustee-wait"), 1000);
     return () => clearTimeout(t);
   }, [stage]);
 
-  // trustee-wait: countdown 60→0 at 10x speed (100ms per display-second = 6 real seconds)
+  // trustee-wait: countdown + poll for guardian decision every 3s
   useEffect(() => {
     if (stage !== "trustee-wait") return;
     setCountdown(60);
     setTrusteeNote("Waiting for Trustee response...");
     let count = 60;
-    const interval = setInterval(() => {
+    let guardianResponded = false;
+
+    // poll for guardian decision every 3 seconds
+    const pollInterval = setInterval(async () => {
+      if (guardianResponded) return;
+      try {
+        const decision = await getGuardianDecision(currentTxnId);
+        if (decision) {
+          guardianResponded = true;
+          clearInterval(pollInterval);
+          clearInterval(countdownInterval);
+          setTrusteeNote(
+            decision === "APPROVED"
+              ? "✅ Guardian approved the transaction!"
+              : "🚫 Guardian blocked the transaction!"
+          );
+          setTimeout(async () => {
+            const result = await apiPromiseRef.current!;
+            result.decision = decision;
+            result.guardianOverride = true;
+            transactionStore.result = result;
+            navigate({ to: "/risk-score" });
+          }, 1500);
+        }
+      } catch (e) {
+        console.error("Poll error:", e);
+      }
+    }, 3000);
+
+    // countdown at 10x speed (100ms per display-second = 6 real seconds total)
+    const countdownInterval = setInterval(() => {
       count--;
       setCountdown(count);
       if (count <= 0) {
-        clearInterval(interval);
+        clearInterval(countdownInterval);
+        clearInterval(pollInterval);
         setTrusteeNote("No response received. Passing to GOGuardian AI...");
         setTimeout(async () => {
           setStage("analysing");
@@ -104,7 +137,11 @@ function TransferScreen() {
         }, 1500);
       }
     }, 100);
-    return () => clearInterval(interval);
+
+    return () => {
+      clearInterval(countdownInterval);
+      clearInterval(pollInterval);
+    };
   }, [stage]);
 
   function handleSend() {

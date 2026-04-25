@@ -13,14 +13,13 @@ export const handler = async (event: any) => {
     "Access-Control-Allow-Headers": "Content-Type",
   };
 
-  // handle CORS preflight
   if (event.requestContext?.http?.method === "OPTIONS") {
     return { statusCode: 200, headers, body: "" };
   }
 
   const method = event.requestContext?.http?.method;
-const rawPath = event.requestContext?.http?.path ?? "";
-const path = rawPath.replace(/^\/prod/, "");
+  const rawPath = event.requestContext?.http?.path ?? "";
+  const path = rawPath.replace(/^\/prod/, "");
 
   try {
     let result;
@@ -54,17 +53,44 @@ const path = rawPath.replace(/^\/prod/, "");
 
     // POST /guardian/alert
     else if (method === "POST" && path === "/guardian/alert") {
-        const { sendPendingAlert } = await import("./lib/twilio");
-    await sendPendingAlert({
-      receiverName: body.receiverName,
-      receiverPhone: body.receiverPhone,
-      amount: body.amount,
+      const { sendPendingAlert } = await import("./lib/twilio");
+      await sendPendingAlert({
+        receiverName: body.receiverName,
+        receiverPhone: body.receiverPhone,
+        amount: body.amount,
       });
       result = { success: true };
     }
 
-    // POST /webhook/telegram (or legacy /webhook/twilio)
-    else if (method === "POST" && (path === "/webhook/telegram" || path === "/webhook/twilio")) {
+    // GET /transaction/status/:txnId — frontend polls this for guardian decision
+    else if (method === "GET" && path.startsWith("/transaction/status/")) {
+      const txnId = path.split("/transaction/status/")[1];
+      const { ScanCommand } = await import("@aws-sdk/lib-dynamodb");
+      const { dynamo, TABLES } = await import("./lib/dynamodb");
+
+      const scanResult = await dynamo.send(
+        new ScanCommand({
+          TableName: TABLES.TRANSACTIONS,
+          FilterExpression: "txnId = :tid",
+          ExpressionAttributeValues: { ":tid": txnId },
+          Limit: 1,
+        })
+      );
+
+      const txn = scanResult.Items?.[0];
+      result = {
+        txnId,
+        guardianDecision: txn?.guardianDecision ?? null,
+        decision: txn?.decision ?? null,
+        found: !!txn,
+      };
+    }
+
+    // POST /webhook/telegram
+    else if (
+      method === "POST" &&
+      (path === "/webhook/telegram" || path === "/webhook/twilio")
+    ) {
       const webhookResult = await twilioWebhook({
         body: event.body ?? "",
         isBase64Encoded: event.isBase64Encoded ?? false,

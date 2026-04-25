@@ -1,4 +1,4 @@
-import { GetCommand, PutCommand } from "@aws-sdk/lib-dynamodb";
+import { GetCommand, PutCommand, ScanCommand } from "@aws-sdk/lib-dynamodb";
 import { dynamo, TABLES } from "../lib/dynamodb";
 import { invokeGuardianLLM, TransactionContext } from "../lib/bedrock";
 import { runGuardrail } from "../lib/qwen";
@@ -17,7 +17,6 @@ function simulateXGBoost(params: {
 }): number {
   let score = 0.1;
 
-  // amount deviation from user average
   if (params.userAvgTransaction > 0) {
     const ratio = params.amount / params.userAvgTransaction;
     if (ratio > 5) score += 0.4;
@@ -25,15 +24,12 @@ function simulateXGBoost(params: {
     else if (ratio > 2) score += 0.1;
   }
 
-  // receiver reputation strikes
   if (params.strikeCount >= 3) score += 0.5;
   else if (params.strikeCount >= 1) score += 0.2;
 
-  // known contact or business = safer
   if (params.isKnownContact) score -= 0.3;
   if (params.isBusinessName) score -= 0.2;
 
-  // clamp between 0 and 1
   return Math.min(1, Math.max(0, score));
 }
 
@@ -132,18 +128,6 @@ export async function checkTransaction(event: {
     };
   }
 
-  // ── Send Telegram notification to guardian for every transaction ──────────
-  sendGuardianAlert({
-  receiverName,
-  receiverPhone,
-  amount,
-  xgboostScore: 0.5,
-  decision: "PENDING",
-  reasonBM: "Transaksi baharu dikesan. Sila semak dan ambil tindakan.",
-  txnId,
-}).catch((err) => console.error("Telegram notification error:", err));
-   
-
   // ─────────────────────────────────────────────────────────────────────────────
   // LAYER 1 — XGBoost Risk Scoring
   // ─────────────────────────────────────────────────────────────────────────────
@@ -162,10 +146,11 @@ export async function checkTransaction(event: {
     strikeCount,
     amountDeviation: parseFloat((amount / userAvgTransaction).toFixed(2)),
     verdict:
-      xgboostScore < 0.3 ? "SAFE" : xgboostScore > 0.8 ? "RISKY" : "GREY_ZONE",
+      xgboostScore < 0.3 ? "SAFE" :
+      xgboostScore > 0.8 ? "RISKY" : "GREY_ZONE",
   };
 
-  // clear safe case
+  // ── Safe — no alert ─────────────────────────────────────────────────────────
   if (xgboostScore < 0.3) {
     const txn = {
       txnId, senderId, receiverPhone, receiverName, amount,
@@ -196,7 +181,7 @@ export async function checkTransaction(event: {
     };
   }
 
-  // clear risky case
+  // ── Risky — block and alert ─────────────────────────────────────────────────
   if (xgboostScore > 0.8) {
     const txn = {
       txnId, senderId, receiverPhone, receiverName, amount,
@@ -210,10 +195,21 @@ export async function checkTransaction(event: {
       layer1_xgboost: layer1Result,
       layer2_llm: null,
       layer3_guardrail: null,
+      guardianDecision: null,
     };
 
     await dynamo.send(new PutCommand({ TableName: TABLES.TRANSACTIONS, Item: txn }));
     await logAudit(txnId, "XGBOOST", txn.reason, timestamp, { xgboostScore });
+
+    await sendGuardianAlert({
+      receiverName,
+      receiverPhone,
+      amount,
+      xgboostScore,
+      decision: "BLOCKED",
+      reasonBM: txn.reasonBM,
+      txnId,
+    }).catch((err) => console.error("Telegram alert error:", err));
 
     return {
       txnId,
@@ -228,7 +224,7 @@ export async function checkTransaction(event: {
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
-  // LAYER 2 — Primary LLM (AWS Bedrock Nova Lite)
+  // LAYER 2 — Primary LLM (AWS Bedrock Nova Micro)
   // Grey zone: 0.3 - 0.8
   // ─────────────────────────────────────────────────────────────────────────────
 
@@ -253,7 +249,7 @@ export async function checkTransaction(event: {
     llmDecision = await invokeGuardianLLM(llmContext);
   } catch (llmError) {
     console.error("Layer 2 LLM error:", llmError);
-    // if LLM fails, default to HOLD
+
     const txn = {
       txnId, senderId, receiverPhone, receiverName, amount,
       riskScore: xgboostScore,
@@ -266,10 +262,29 @@ export async function checkTransaction(event: {
       layer1_xgboost: layer1Result,
       layer2_llm: { error: String(llmError) },
       layer3_guardrail: null,
+      guardianDecision: null,
     };
+
     await dynamo.send(new PutCommand({ TableName: TABLES.TRANSACTIONS, Item: txn }));
     await logAudit(txnId, "AI_GUARDIAN", txn.reason, timestamp);
-    return { txnId, decision: "HOLD", decisionBy: "AI_GUARDIAN", xgboostScore, bypass: false };
+
+    await sendGuardianAlert({
+      receiverName,
+      receiverPhone,
+      amount,
+      xgboostScore,
+      decision: "HOLD",
+      reasonBM: txn.reasonBM,
+      txnId,
+    }).catch((err) => console.error("Telegram alert error:", err));
+
+    return {
+      txnId,
+      decision: "HOLD",
+      decisionBy: "AI_GUARDIAN",
+      xgboostScore,
+      bypass: false,
+    };
   }
 
   const layer2Result = {
@@ -281,7 +296,6 @@ export async function checkTransaction(event: {
 
   // ─────────────────────────────────────────────────────────────────────────────
   // LAYER 3 — Guardrail (Alibaba Cloud Qwen)
-  // Audits Layer 2 output for hallucinations
   // ─────────────────────────────────────────────────────────────────────────────
 
   let guardrailResult;
@@ -299,7 +313,6 @@ export async function checkTransaction(event: {
     });
   } catch (guardrailError) {
     console.error("Layer 3 guardrail error:", guardrailError);
-    // if guardrail fails, trust LLM but flag it
     guardrailResult = {
       verdict: "ESCALATE" as const,
       finalDecision: "HOLD" as const,
@@ -331,6 +344,7 @@ export async function checkTransaction(event: {
     timestamp,
     reported: false,
     timerExpiry: null,
+    guardianDecision: null,
     layer1_xgboost: layer1Result,
     layer2_llm: layer2Result,
     layer3_guardrail: layer3Result,
@@ -343,7 +357,19 @@ export async function checkTransaction(event: {
     guardrailVerdict: guardrailResult.verdict,
   });
 
-  // ── Return full pipeline result ─────────────────────────────────────────────
+  // alert guardian only if not approved
+  if (guardrailResult.finalDecision !== "APPROVE") {
+    await sendGuardianAlert({
+      receiverName,
+      receiverPhone,
+      amount,
+      xgboostScore,
+      decision: guardrailResult.finalDecision,
+      reasonBM: guardrailResult.reasonBM,
+      txnId,
+    }).catch((err) => console.error("Telegram alert error:", err));
+  }
+
   return {
     txnId,
     decision: guardrailResult.finalDecision,
