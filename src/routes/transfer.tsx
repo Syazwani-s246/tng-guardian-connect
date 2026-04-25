@@ -23,8 +23,6 @@ const BUSINESS_KEYWORDS = ["Sdn Bhd", "Berhad", "Enterprise", "Trading", "Holdin
 
 const TRUSTEES = [
   { name: "Ahmad Hafizi", initials: "AH" },
-  { name: "Siti Norzahra", initials: "SN" },
-  { name: "Razif Ikhwan", initials: "RI" },
 ];
 
 function isKnownRecipient(name: string): boolean {
