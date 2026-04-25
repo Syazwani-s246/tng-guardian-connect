@@ -9,8 +9,11 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as TransferRouteImport } from './routes/transfer'
 import { Route as RecipientDetailRouteImport } from './routes/recipient-detail'
 import { Route as MeRouteImport } from './routes/me'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as HomeRouteImport } from './routes/home'
 import { Route as GuardianRouteImport } from './routes/guardian'
 import { Route as FamilyRouteImport } from './routes/family'
 import { Route as DemoRouteImport } from './routes/demo'
@@ -20,6 +23,11 @@ import { Route as AlertRouteImport } from './routes/alert'
 import { Route as AiMonitorRouteImport } from './routes/ai-monitor'
 import { Route as IndexRouteImport } from './routes/index'
 
+const TransferRoute = TransferRouteImport.update({
+  id: '/transfer',
+  path: '/transfer',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RecipientDetailRoute = RecipientDetailRouteImport.update({
   id: '/recipient-detail',
   path: '/recipient-detail',
@@ -28,6 +36,16 @@ const RecipientDetailRoute = RecipientDetailRouteImport.update({
 const MeRoute = MeRouteImport.update({
   id: '/me',
   path: '/me',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HomeRoute = HomeRouteImport.update({
+  id: '/home',
+  path: '/home',
   getParentRoute: () => rootRouteImport,
 } as any)
 const GuardianRoute = GuardianRouteImport.update({
@@ -80,8 +98,11 @@ export interface FileRoutesByFullPath {
   '/demo': typeof DemoRoute
   '/family': typeof FamilyRoute
   '/guardian': typeof GuardianRoute
+  '/home': typeof HomeRoute
+  '/login': typeof LoginRoute
   '/me': typeof MeRoute
   '/recipient-detail': typeof RecipientDetailRoute
+  '/transfer': typeof TransferRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -92,8 +113,11 @@ export interface FileRoutesByTo {
   '/demo': typeof DemoRoute
   '/family': typeof FamilyRoute
   '/guardian': typeof GuardianRoute
+  '/home': typeof HomeRoute
+  '/login': typeof LoginRoute
   '/me': typeof MeRoute
   '/recipient-detail': typeof RecipientDetailRoute
+  '/transfer': typeof TransferRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -105,8 +129,11 @@ export interface FileRoutesById {
   '/demo': typeof DemoRoute
   '/family': typeof FamilyRoute
   '/guardian': typeof GuardianRoute
+  '/home': typeof HomeRoute
+  '/login': typeof LoginRoute
   '/me': typeof MeRoute
   '/recipient-detail': typeof RecipientDetailRoute
+  '/transfer': typeof TransferRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -119,8 +146,11 @@ export interface FileRouteTypes {
     | '/demo'
     | '/family'
     | '/guardian'
+    | '/home'
+    | '/login'
     | '/me'
     | '/recipient-detail'
+    | '/transfer'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -131,8 +161,11 @@ export interface FileRouteTypes {
     | '/demo'
     | '/family'
     | '/guardian'
+    | '/home'
+    | '/login'
     | '/me'
     | '/recipient-detail'
+    | '/transfer'
   id:
     | '__root__'
     | '/'
@@ -143,8 +176,11 @@ export interface FileRouteTypes {
     | '/demo'
     | '/family'
     | '/guardian'
+    | '/home'
+    | '/login'
     | '/me'
     | '/recipient-detail'
+    | '/transfer'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -156,12 +192,22 @@ export interface RootRouteChildren {
   DemoRoute: typeof DemoRoute
   FamilyRoute: typeof FamilyRoute
   GuardianRoute: typeof GuardianRoute
+  HomeRoute: typeof HomeRoute
+  LoginRoute: typeof LoginRoute
   MeRoute: typeof MeRoute
   RecipientDetailRoute: typeof RecipientDetailRoute
+  TransferRoute: typeof TransferRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/transfer': {
+      id: '/transfer'
+      path: '/transfer'
+      fullPath: '/transfer'
+      preLoaderRoute: typeof TransferRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/recipient-detail': {
       id: '/recipient-detail'
       path: '/recipient-detail'
@@ -174,6 +220,20 @@ declare module '@tanstack/react-router' {
       path: '/me'
       fullPath: '/me'
       preLoaderRoute: typeof MeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/home': {
+      id: '/home'
+      path: '/home'
+      fullPath: '/home'
+      preLoaderRoute: typeof HomeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/guardian': {
@@ -244,8 +304,11 @@ const rootRouteChildren: RootRouteChildren = {
   DemoRoute: DemoRoute,
   FamilyRoute: FamilyRoute,
   GuardianRoute: GuardianRoute,
+  HomeRoute: HomeRoute,
+  LoginRoute: LoginRoute,
   MeRoute: MeRoute,
   RecipientDetailRoute: RecipientDetailRoute,
+  TransferRoute: TransferRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -52,10 +52,10 @@ function BottomNav() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
   const items = [
-    { to: "/", icon: Home, label: "Home" },
-    { to: "/", icon: Wallet, label: "Wallet" },
+    { to: "/home", icon: Home, label: "Home" },
+    { to: "/home", icon: Wallet, label: "Wallet" },
     { to: "/guardian", icon: Shield, label: "Guardian", primary: true },
-    { to: "/", icon: Bell, label: "Inbox" },
+    { to: "/home", icon: Bell, label: "Inbox" },
     { to: "/me", icon: User, label: "Me" },
   ];
 
@@ -65,7 +65,7 @@ function BottomNav() {
         {items.map(({ to, icon: Icon, label, primary }, i) => {
           const active = primary
             ? pathname.startsWith("/guardian") || pathname.startsWith("/family") || pathname.startsWith("/alert") || pathname.startsWith("/blocked")
-            : !primary && to !== "/" && pathname.startsWith(to);
+            : !primary && pathname === to;
           return (
             <Link
               key={i}
