@@ -45,7 +45,7 @@ Transaction Details:
 - XGBoost Risk Score: ${context.xgboostScore} (0=safe, 1=risky)
 - Receiver Strike Count (community reports): ${context.strikeCount}
 - Sender Age: ${context.userProfile.age}
-- Sender Income Tier: ${context.userProfile.incometiear}
+- Sender Income Tier: ${context.userProfile.incometier}
 - Recent Transaction History: ${context.recentHistory}
 
 Rules:
@@ -63,22 +63,32 @@ Respond ONLY in this exact JSON format:
 }`;
 
   const command = new InvokeModelCommand({
-    modelId: "anthropic.claude-3-haiku-20240307-v1:0",
+    modelId: "apac.amazon.nova-micro-v1:0",
     contentType: "application/json",
     accept: "application/json",
     body: JSON.stringify({
-      anthropic_version: "bedrock-2023-05-31",
-      max_tokens: 300,
-      messages: [{ role: "user", content: prompt }],
-    }),
+      messages: [
+        {
+          role: "user",
+          content: [{ text: prompt }],
+        },
+    ],
+    inferenceConfig: {
+    maxTokens: 300,
+    temperature: 0.3,
+    },
+  }),
   });
 
   const response = await client.send(command);
   const raw = JSON.parse(new TextDecoder().decode(response.body));
-  const text = raw.content[0].text;
+  const text = raw.output.message.content[0].text;
 
   try {
-    return JSON.parse(text);
+    // Titan sometimes wraps response in text before the JSON — extract it
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error("No JSON found in response");
+    return JSON.parse(jsonMatch[0]);
   } catch {
     return {
       decision: "HOLD",
