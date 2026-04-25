@@ -25,6 +25,55 @@
       "No transaction history found for this number"
     ]
   },
+  "demo_scenarios": [
+    {
+      "label": "High Risk (Auto-Blocked)",
+      "recipient_phone": "+60 11-2345 6789",
+      "recipient_name": "Unknown Recipient",
+      "amount": 500.00,
+      "country": "Malaysia",
+      "risk_score": 87,
+      "risk_level": "High",
+      "reasons": [
+        "New recipient, never transacted before",
+        "Amount is higher than your usual transfers",
+        "No transaction history found for this number"
+      ]
+    },
+    {
+      "label": "Medium Risk (User Warning)",
+      "recipient_phone": "+60 17-8899 1234",
+      "recipient_name": "Ahmad Farid",
+      "amount": 250.00,
+      "country": "Malaysia",
+      "risk_score": 55,
+      "risk_level": "Medium",
+      "reasons": [
+        "Recipient added less than 7 days ago",
+        "Transfer amount is above your 30-day average",
+        "Unusual transfer time — outside your normal hours"
+      ]
+    },
+    {
+      "label": "Low Risk (Safe to Proceed)",
+      "recipient_phone": "+60 12-345 6789",
+      "recipient_name": "Mama",
+      "amount": 50.00,
+      "country": "Malaysia",
+      "risk_score": 12,
+      "risk_level": "Low",
+      "reasons": [
+        "Recipient is in your verified contacts",
+        "Amount is within your usual transfer range",
+        "Consistent transfer pattern detected"
+      ]
+    }
+  ],
+  "api_endpoints": {
+    "risk_score": "/api/v1/risk-score",
+    "verified_recipients": "/api/v1/verified-recipients",
+    "transactions": "/api/v1/transactions"
+  },
   "recent_transactions": [
     { "id": 1, "recipient": "Grab", "amount": 18.00, "status": "approved", "date": "2026-04-25", "safe": true },
     { "id": 2, "recipient": "Unknown Recipient", "amount": 500.00, "status": "blocked", "date": "2026-04-22", "scam_marked": false, "mark_deadline": "2026-04-29" },
