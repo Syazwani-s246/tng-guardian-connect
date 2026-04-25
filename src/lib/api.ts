@@ -101,7 +101,7 @@ export function mapApiResponseToRiskScore(apiResponse: any, params: {
 
   const riskLevel =
     riskScore <= 30 ? "Low" :
-    riskScore <= 60 ? "Medium" : "High";
+      riskScore <= 60 ? "Medium" : "High";
 
   // build reasons
   const reasons: string[] = [];

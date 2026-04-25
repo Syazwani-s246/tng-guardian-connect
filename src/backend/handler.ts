@@ -3,6 +3,7 @@ import { guardianDecision } from "./functions/guardianDecision";
 import { linkGuardian } from "./functions/linkGuardian";
 import { getAuditLog } from "./functions/getAuditLog";
 import { reportReceiver } from "./functions/reportReceiver";
+import { twilioWebhook } from "./functions/twilioWebhook";
 
 export const handler = async (event: any) => {
   const headers = {
@@ -49,6 +50,19 @@ const path = rawPath.replace(/^\/prod/, "");
     // POST /receiver/report
     else if (method === "POST" && path === "/receiver/report") {
       result = await reportReceiver(body);
+    }
+
+    // POST /webhook/telegram (or legacy /webhook/twilio)
+    else if (method === "POST" && (path === "/webhook/telegram" || path === "/webhook/twilio")) {
+      const webhookResult = await twilioWebhook({
+        body: event.body ?? "",
+        isBase64Encoded: event.isBase64Encoded ?? false,
+      });
+      return {
+        statusCode: webhookResult.statusCode,
+        headers: { ...headers, ...webhookResult.headers },
+        body: webhookResult.body,
+      };
     }
 
     else {
