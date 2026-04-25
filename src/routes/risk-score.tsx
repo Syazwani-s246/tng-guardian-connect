@@ -2,7 +2,8 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { PhoneShell } from "@/components/PhoneShell";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
-import { transactionStore  } from "./transfer";
+import { transactionStore } from "./transfer";
+import { walletStore } from "@/lib/walletStore";
 
 export const Route = createFileRoute("/risk-score")({
   head: () => ({
@@ -160,7 +161,7 @@ function RiskScoreScreen() {
         ) : isHold ? (
           <div className="space-y-3">
             <Button size="lg" className="w-full h-14 text-base font-semibold rounded-2xl"
-              onClick={() => navigate({ to: "/payment-success" })}>
+              onClick={() => { walletStore.deduct(amount); navigate({ to: "/payment-success" }); }}>
               Proceed Anyway
             </Button>
             <Button size="lg" variant="outline" className="w-full h-14 text-base font-semibold rounded-2xl border-2"
@@ -171,7 +172,7 @@ function RiskScoreScreen() {
         ) : (
           <div className="space-y-3">
             <Button size="lg" className="w-full h-14 text-base font-semibold rounded-2xl"
-              onClick={() => navigate({ to: "/payment-success" })}>
+              onClick={() => { walletStore.deduct(amount); navigate({ to: "/payment-success" }); }}>
               Proceed with Transfer
             </Button>
             <Button size="lg" variant="outline" className="w-full h-14 text-base font-semibold rounded-2xl border-2"
