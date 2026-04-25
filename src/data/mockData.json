@@ -1,0 +1,34 @@
+{
+  "user": {
+    "name": "Mak Cik Rohani",
+    "phone": "+60 12-345 6789",
+    "balance": 1250.00,
+    "protection": "GOGuardian AI Active"
+  },
+  "verified_recipients": [
+    { "name": "Grab", "type": "shop" },
+    { "name": "TNB", "type": "shop" },
+    { "name": "99 Speedmart", "type": "shop" },
+    { "name": "Mama", "type": "contact" },
+    { "name": "Abah", "type": "contact" }
+  ],
+  "demo_transaction": {
+    "recipient_phone": "+60 11-2345 6789",
+    "recipient_name": "Unknown Recipient",
+    "amount": 500.00,
+    "country": "Malaysia",
+    "risk_score": 87,
+    "risk_level": "High",
+    "reasons": [
+      "New recipient, never transacted before",
+      "Amount is higher than your usual transfers",
+      "No transaction history found for this number"
+    ]
+  },
+  "recent_transactions": [
+    { "id": 1, "recipient": "Grab", "amount": 18.00, "status": "approved", "date": "2026-04-25", "safe": true },
+    { "id": 2, "recipient": "Unknown Recipient", "amount": 500.00, "status": "blocked", "date": "2026-04-22", "scam_marked": false, "mark_deadline": "2026-04-29" },
+    { "id": 3, "recipient": "Fast Investment Co", "amount": 1200.00, "status": "approved", "date": "2026-04-20", "scam_marked": true },
+    { "id": 4, "recipient": "TNB", "amount": 120.00, "status": "approved", "date": "2026-04-13", "safe": true }
+  ]
+}

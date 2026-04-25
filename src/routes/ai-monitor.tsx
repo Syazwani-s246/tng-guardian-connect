@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
@@ -45,16 +46,26 @@ export function getBlockedCount(transactions: TransactionRecord[]): number {
     (t) => t.decision === "BLOCKED" || t.decision === "BLOCK",
   ).length;
 }
+=======
+import { createFileRoute } from "@tanstack/react-router";
+import { PhoneShell } from "@/components/PhoneShell";
+import { Bot, CheckCircle2, AlertTriangle, Activity } from "lucide-react";
+>>>>>>> 4bd21fef96de283cf848fb04a3ea587d84c762ad
 
 export const Route = createFileRoute("/ai-monitor")({
   head: () => ({
     meta: [
+<<<<<<< HEAD
       { title: "AI Guardian — GOGuardian" },
       {
         name: "description",
         content:
           "AI monitors your transactions in real time and flags suspicious activity.",
       },
+=======
+      { title: "AI Activity — TNG eWallet" },
+      { name: "description", content: "GOGuardian AI monitors your transactions in real time." },
+>>>>>>> 4bd21fef96de283cf848fb04a3ea587d84c762ad
     ],
   }),
   component: AIMonitor,
@@ -120,7 +131,7 @@ function AIMonitor() {
   }
 
   return (
-    <PhoneShell title="AI Guardian" showBack backTo="/guardian">
+    <PhoneShell title="AI Activity" showBack backTo="/home">
       <div className="px-5 pt-6 space-y-5">
         {/* Status */}
         <div className="bg-gradient-to-br from-primary to-primary/80 text-primary-foreground rounded-3xl p-6 shadow-elevated">
@@ -213,6 +224,7 @@ function AIMonitor() {
             </div>
           )}
         </div>
+<<<<<<< HEAD
 
         <Button
           asChild
@@ -229,6 +241,8 @@ function AIMonitor() {
           open={sheetOpen}
           onOpenChange={setSheetOpen}
         />
+=======
+>>>>>>> 4bd21fef96de283cf848fb04a3ea587d84c762ad
       </div>
     </PhoneShell>
   );

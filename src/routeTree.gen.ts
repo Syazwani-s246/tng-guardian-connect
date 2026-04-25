@@ -9,33 +9,45 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as GuardianRouteImport } from './routes/guardian'
-import { Route as FamilyRouteImport } from './routes/family'
-import { Route as DemoRouteImport } from './routes/demo'
-import { Route as CommunityRouteImport } from './routes/community'
+import { Route as TransferRouteImport } from './routes/transfer'
+import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as RiskScoreRouteImport } from './routes/risk-score'
+import { Route as MeRouteImport } from './routes/me'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as HomeRouteImport } from './routes/home'
 import { Route as BlockedRouteImport } from './routes/blocked'
 import { Route as AlertRouteImport } from './routes/alert'
 import { Route as AiMonitorRouteImport } from './routes/ai-monitor'
 import { Route as IndexRouteImport } from './routes/index'
 
-const GuardianRoute = GuardianRouteImport.update({
-  id: '/guardian',
-  path: '/guardian',
+const TransferRoute = TransferRouteImport.update({
+  id: '/transfer',
+  path: '/transfer',
   getParentRoute: () => rootRouteImport,
 } as any)
-const FamilyRoute = FamilyRouteImport.update({
-  id: '/family',
-  path: '/family',
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
-const DemoRoute = DemoRouteImport.update({
-  id: '/demo',
-  path: '/demo',
+const RiskScoreRoute = RiskScoreRouteImport.update({
+  id: '/risk-score',
+  path: '/risk-score',
   getParentRoute: () => rootRouteImport,
 } as any)
-const CommunityRoute = CommunityRouteImport.update({
-  id: '/community',
-  path: '/community',
+const MeRoute = MeRouteImport.update({
+  id: '/me',
+  path: '/me',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HomeRoute = HomeRouteImport.update({
+  id: '/home',
+  path: '/home',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BlockedRoute = BlockedRouteImport.update({
@@ -64,20 +76,24 @@ export interface FileRoutesByFullPath {
   '/ai-monitor': typeof AiMonitorRoute
   '/alert': typeof AlertRoute
   '/blocked': typeof BlockedRoute
-  '/community': typeof CommunityRoute
-  '/demo': typeof DemoRoute
-  '/family': typeof FamilyRoute
-  '/guardian': typeof GuardianRoute
+  '/home': typeof HomeRoute
+  '/login': typeof LoginRoute
+  '/me': typeof MeRoute
+  '/risk-score': typeof RiskScoreRoute
+  '/settings': typeof SettingsRoute
+  '/transfer': typeof TransferRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/ai-monitor': typeof AiMonitorRoute
   '/alert': typeof AlertRoute
   '/blocked': typeof BlockedRoute
-  '/community': typeof CommunityRoute
-  '/demo': typeof DemoRoute
-  '/family': typeof FamilyRoute
-  '/guardian': typeof GuardianRoute
+  '/home': typeof HomeRoute
+  '/login': typeof LoginRoute
+  '/me': typeof MeRoute
+  '/risk-score': typeof RiskScoreRoute
+  '/settings': typeof SettingsRoute
+  '/transfer': typeof TransferRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -85,10 +101,12 @@ export interface FileRoutesById {
   '/ai-monitor': typeof AiMonitorRoute
   '/alert': typeof AlertRoute
   '/blocked': typeof BlockedRoute
-  '/community': typeof CommunityRoute
-  '/demo': typeof DemoRoute
-  '/family': typeof FamilyRoute
-  '/guardian': typeof GuardianRoute
+  '/home': typeof HomeRoute
+  '/login': typeof LoginRoute
+  '/me': typeof MeRoute
+  '/risk-score': typeof RiskScoreRoute
+  '/settings': typeof SettingsRoute
+  '/transfer': typeof TransferRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -97,30 +115,36 @@ export interface FileRouteTypes {
     | '/ai-monitor'
     | '/alert'
     | '/blocked'
-    | '/community'
-    | '/demo'
-    | '/family'
-    | '/guardian'
+    | '/home'
+    | '/login'
+    | '/me'
+    | '/risk-score'
+    | '/settings'
+    | '/transfer'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/ai-monitor'
     | '/alert'
     | '/blocked'
-    | '/community'
-    | '/demo'
-    | '/family'
-    | '/guardian'
+    | '/home'
+    | '/login'
+    | '/me'
+    | '/risk-score'
+    | '/settings'
+    | '/transfer'
   id:
     | '__root__'
     | '/'
     | '/ai-monitor'
     | '/alert'
     | '/blocked'
-    | '/community'
-    | '/demo'
-    | '/family'
-    | '/guardian'
+    | '/home'
+    | '/login'
+    | '/me'
+    | '/risk-score'
+    | '/settings'
+    | '/transfer'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -128,40 +152,56 @@ export interface RootRouteChildren {
   AiMonitorRoute: typeof AiMonitorRoute
   AlertRoute: typeof AlertRoute
   BlockedRoute: typeof BlockedRoute
-  CommunityRoute: typeof CommunityRoute
-  DemoRoute: typeof DemoRoute
-  FamilyRoute: typeof FamilyRoute
-  GuardianRoute: typeof GuardianRoute
+  HomeRoute: typeof HomeRoute
+  LoginRoute: typeof LoginRoute
+  MeRoute: typeof MeRoute
+  RiskScoreRoute: typeof RiskScoreRoute
+  SettingsRoute: typeof SettingsRoute
+  TransferRoute: typeof TransferRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/guardian': {
-      id: '/guardian'
-      path: '/guardian'
-      fullPath: '/guardian'
-      preLoaderRoute: typeof GuardianRouteImport
+    '/transfer': {
+      id: '/transfer'
+      path: '/transfer'
+      fullPath: '/transfer'
+      preLoaderRoute: typeof TransferRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/family': {
-      id: '/family'
-      path: '/family'
-      fullPath: '/family'
-      preLoaderRoute: typeof FamilyRouteImport
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/demo': {
-      id: '/demo'
-      path: '/demo'
-      fullPath: '/demo'
-      preLoaderRoute: typeof DemoRouteImport
+    '/risk-score': {
+      id: '/risk-score'
+      path: '/risk-score'
+      fullPath: '/risk-score'
+      preLoaderRoute: typeof RiskScoreRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/community': {
-      id: '/community'
-      path: '/community'
-      fullPath: '/community'
-      preLoaderRoute: typeof CommunityRouteImport
+    '/me': {
+      id: '/me'
+      path: '/me'
+      fullPath: '/me'
+      preLoaderRoute: typeof MeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/home': {
+      id: '/home'
+      path: '/home'
+      fullPath: '/home'
+      preLoaderRoute: typeof HomeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/blocked': {
@@ -200,10 +240,12 @@ const rootRouteChildren: RootRouteChildren = {
   AiMonitorRoute: AiMonitorRoute,
   AlertRoute: AlertRoute,
   BlockedRoute: BlockedRoute,
-  CommunityRoute: CommunityRoute,
-  DemoRoute: DemoRoute,
-  FamilyRoute: FamilyRoute,
-  GuardianRoute: GuardianRoute,
+  HomeRoute: HomeRoute,
+  LoginRoute: LoginRoute,
+  MeRoute: MeRoute,
+  RiskScoreRoute: RiskScoreRoute,
+  SettingsRoute: SettingsRoute,
+  TransferRoute: TransferRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
