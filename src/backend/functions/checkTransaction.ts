@@ -1,10 +1,11 @@
-import { GetCommand, PutCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
+import { GetCommand, PutCommand } from "@aws-sdk/lib-dynamodb";
 import { dynamo, TABLES } from "../lib/dynamodb";
-import { invokeGuardianLLM, invokeAuditorLLM, TransactionContext } from "../lib/bedrock";
-import type { AuditContext } from "@/types/transaction";
+import { invokeGuardianLLM, TransactionContext } from "../lib/bedrock";
+import { runGuardrail } from "../lib/qwen";
 import { v4 as uuidv4 } from "uuid";
 
-// Simulates XGBoost risk scoring
+// ─── Layer 1: XGBoost Simulation ─────────────────────────────────────────────
+
 function simulateXGBoost(params: {
   amount: number;
   receiverPhone: string;
@@ -13,7 +14,7 @@ function simulateXGBoost(params: {
   isKnownContact: boolean;
   isBusinessName: boolean;
 }): number {
-  let score = 0.1; // base score
+  let score = 0.1;
 
   // amount deviation from user average
   if (params.userAvgTransaction > 0) {
@@ -23,7 +24,7 @@ function simulateXGBoost(params: {
     else if (ratio > 2) score += 0.1;
   }
 
-  // receiver reputation
+  // receiver reputation strikes
   if (params.strikeCount >= 3) score += 0.5;
   else if (params.strikeCount >= 1) score += 0.2;
 
@@ -36,15 +37,33 @@ function simulateXGBoost(params: {
 }
 
 function isBusinessName(name: string): boolean {
-  const businessKeywords = [
+  const keywords = [
     "sdn bhd", "sdn. bhd", "berhad", "enterprise", "trading",
     "shop", "store", "mart", "restaurant", "cafe", "kedai",
     "holdings", "group", "services", "solution", "tech",
+    "pharmacy", "clinic", "hospital", "farmasi",
   ];
-  return businessKeywords.some((kw) =>
-    name.toLowerCase().includes(kw)
+  return keywords.some((kw) => name.toLowerCase().includes(kw));
+}
+
+// ─── Audit Logger ─────────────────────────────────────────────────────────────
+
+async function logAudit(
+  txnId: string,
+  decisionBy: string,
+  reason: string,
+  timestamp: string,
+  extra?: Record<string, any>
+) {
+  await dynamo.send(
+    new PutCommand({
+      TableName: TABLES.AUDIT_LOG,
+      Item: { txnId, decisionBy, reason, timestamp, ...extra },
+    })
   );
 }
+
+// ─── Main Handler ─────────────────────────────────────────────────────────────
 
 export async function checkTransaction(event: {
   senderId: string;
@@ -56,7 +75,7 @@ export async function checkTransaction(event: {
   const txnId = uuidv4();
   const timestamp = new Date().toISOString();
 
-  // 1. get sender profile
+  // ── Fetch user profile ──────────────────────────────────────────────────────
   const userResult = await dynamo.send(
     new GetCommand({
       TableName: TABLES.USERS,
@@ -66,195 +85,251 @@ export async function checkTransaction(event: {
   const user = userResult.Item;
   if (!user) throw new Error("User not found");
 
-  // 2. get receiver reputation
+  // ── Fetch receiver reputation ───────────────────────────────────────────────
   const reputationResult = await dynamo.send(
     new GetCommand({
       TableName: TABLES.RECEIVER_REPUTATION,
       Key: { receiverPhone },
     })
   );
-  const reputation = reputationResult.Item;
-  const strikeCount = reputation?.strikeCount ?? 0;
+  const strikeCount = reputationResult.Item?.strikeCount ?? 0;
+  const userAvgTransaction = user.avgTransactionAmount ?? 100;
 
-  // 3. check if known contact
+  // ── Bypass checks ───────────────────────────────────────────────────────────
   const isKnownContact = (user.contacts ?? []).includes(receiverPhone);
   const isBusiness = isBusinessName(receiverName);
 
-  // 4. bypass rule — known contact or business name
   if (isKnownContact || isBusiness) {
+    const bypassReason = isBusiness
+      ? "Receiver identified as business name"
+      : "Receiver is a known contact";
+
     const txn = {
-      txnId,
-      senderId,
-      receiverPhone,
-      receiverName,
-      amount,
+      txnId, senderId, receiverPhone, receiverName, amount,
       riskScore: 0.05,
       decision: "APPROVED",
       decisionBy: "BYPASS",
-      reason: isBusiness
-        ? "Receiver identified as business"
-        : "Receiver is a known contact",
-      reasonBM: "Penerima dikenali. Transaksi diluluskan.",
+      reason: bypassReason,
+      reasonBM: "Penerima dikenali. Transaksi diluluskan secara automatik.",
       timestamp,
       reported: false,
-      auditVerdict: null,
-      auditReason: null,
-      auditReasonBM: null,
-      consistencyScore: null,
     };
 
     await dynamo.send(new PutCommand({ TableName: TABLES.TRANSACTIONS, Item: txn }));
-    await logAudit(txnId, "BYPASS", txn.reason, timestamp);
+    await logAudit(txnId, "BYPASS", bypassReason, timestamp);
 
-    return { txnId, decision: "APPROVED", bypass: true, reason: txn.reason };
+    return {
+      txnId,
+      decision: "APPROVED",
+      decisionBy: "BYPASS",
+      reason: bypassReason,
+      reasonBM: txn.reasonBM,
+      bypass: true,
+    };
   }
 
-  // 5. simulate XGBoost score
+  // ─────────────────────────────────────────────────────────────────────────────
+  // LAYER 1 — XGBoost Risk Scoring
+  // ─────────────────────────────────────────────────────────────────────────────
+
   const xgboostScore = simulateXGBoost({
     amount,
     receiverPhone,
     strikeCount,
-    userAvgTransaction: user.avgTransactionAmount ?? 100,
+    userAvgTransaction,
     isKnownContact,
     isBusinessName: isBusiness,
   });
 
-  // 6. clear cases — no LLM needed
+  const layer1Result = {
+    score: xgboostScore,
+    strikeCount,
+    amountDeviation: parseFloat((amount / userAvgTransaction).toFixed(2)),
+    verdict:
+      xgboostScore < 0.3 ? "SAFE" : xgboostScore > 0.8 ? "RISKY" : "GREY_ZONE",
+  };
+
+  // clear safe case
   if (xgboostScore < 0.3) {
     const txn = {
       txnId, senderId, receiverPhone, receiverName, amount,
       riskScore: xgboostScore,
       decision: "APPROVED",
       decisionBy: "XGBOOST",
-      reason: "Risk score below threshold — transaction is safe",
+      reason: "XGBoost score below 0.3 — transaction is safe",
       reasonBM: "Transaksi ini selamat. Tiada aktiviti mencurigakan dikesan.",
       timestamp,
       reported: false,
       timerExpiry: null,
-      auditVerdict: null,
-      auditReason: null,
-      auditReasonBM: null,
-      consistencyScore: null,
     };
+
     await dynamo.send(new PutCommand({ TableName: TABLES.TRANSACTIONS, Item: txn }));
-    await logAudit(txnId, "XGBOOST", txn.reason, timestamp);
-    return { txnId, decision: "APPROVED", xgboostScore, bypass: false };
+    await logAudit(txnId, "XGBOOST", txn.reason, timestamp, { xgboostScore });
+
+    return {
+      txnId,
+      decision: "APPROVED",
+      decisionBy: "XGBOOST",
+      xgboostScore,
+      reason: txn.reason,
+      reasonBM: txn.reasonBM,
+      bypass: false,
+      layer1: layer1Result,
+    };
   }
 
+  // clear risky case
   if (xgboostScore > 0.8) {
     const txn = {
       txnId, senderId, receiverPhone, receiverName, amount,
       riskScore: xgboostScore,
       decision: "BLOCKED",
       decisionBy: "XGBOOST",
-      reason: "Risk score above threshold — transaction blocked automatically",
-      reasonBM: "Transaksi ini disekat kerana aktiviti mencurigakan dikesan. Sila hubungi penjaga anda.",
+      reason: "XGBoost score above 0.8 — transaction blocked automatically",
+      reasonBM: "Transaksi ini disekat kerana risiko tinggi dikesan. Sila hubungi sokongan TNG jika anda memerlukannya.",
       timestamp,
       reported: false,
       timerExpiry: null,
-      auditVerdict: null,
-      auditReason: null,
-      auditReasonBM: null,
-      consistencyScore: null,
     };
+
     await dynamo.send(new PutCommand({ TableName: TABLES.TRANSACTIONS, Item: txn }));
-    await logAudit(txnId, "XGBOOST", txn.reason, timestamp);
-    return { txnId, decision: "BLOCKED", xgboostScore, bypass: false };
+    await logAudit(txnId, "XGBOOST", txn.reason, timestamp, { xgboostScore });
+
+    return {
+      txnId,
+      decision: "BLOCKED",
+      decisionBy: "XGBOOST",
+      xgboostScore,
+      reason: txn.reason,
+      reasonBM: txn.reasonBM,
+      bypass: false,
+      layer1: layer1Result,
+    };
   }
 
-  // 7. grey zone (0.3 - 0.8) — check guardian mode
-  const guardianMode = user.guardianMode ?? "AI";
-  const timerExpiry = new Date(Date.now() + 3 * 60 * 1000).toISOString(); // 3 minutes
+  // ─────────────────────────────────────────────────────────────────────────────
+  // LAYER 2 — Primary LLM (AWS Bedrock Nova Lite)
+  // Grey zone: 0.3 - 0.8
+  // ─────────────────────────────────────────────────────────────────────────────
 
-  if (guardianMode === "AI") {
-    // no human guardian — go straight to LLM
-    const context: TransactionContext = {
-      txnId, senderId, receiverPhone, receiverName, amount,
-      xgboostScore, strikeCount,
-      userProfile: {
-        age: user.age ?? 0,
-        incometier: user.incomeTier ?? "unknown",
-        guardianMode,
-      },
-      recentHistory: JSON.stringify(user.recentTransactions ?? []),
-    };
+  const llmContext: TransactionContext = {
+    txnId,
+    senderId,
+    receiverPhone,
+    receiverName,
+    amount,
+    xgboostScore,
+    strikeCount,
+    userProfile: {
+      age: user.age ?? 0,
+      incometier: user.incomeTier ?? "unknown",
+      guardianMode: "AI",
+    },
+    recentHistory: JSON.stringify(user.recentTransactions ?? []),
+  };
 
-    const llmDecision = await invokeGuardianLLM(context);
-
-    const auditContext: AuditContext = {
-      txnId,
-      transactionDetails: {
-        amount,
-        receiverPhone,
-        receiverName,
-        xgboostScore,
-        strikeCount,
-      },
-      layer2Decision: llmDecision,
-    };
-    const auditResult = await invokeAuditorLLM(auditContext);
-
+  let llmDecision;
+  try {
+    llmDecision = await invokeGuardianLLM(llmContext);
+  } catch (llmError) {
+    console.error("Layer 2 LLM error:", llmError);
+    // if LLM fails, default to HOLD
     const txn = {
       txnId, senderId, receiverPhone, receiverName, amount,
       riskScore: xgboostScore,
-      decision: llmDecision.decision,
+      decision: "HOLD",
       decisionBy: "AI_GUARDIAN",
-      reason: llmDecision.reason,
-      reasonBM: llmDecision.reasonBM,
-      confidence: llmDecision.confidence,
+      reason: "Primary LLM unavailable — transaction held for safety",
+      reasonBM: "Sistem AI tidak dapat membuat keputusan. Transaksi ditahan buat sementara.",
       timestamp,
       reported: false,
       timerExpiry: null,
-      auditVerdict: auditResult.auditVerdict,
-      auditReason: auditResult.auditReason,
-      auditReasonBM: auditResult.auditReasonBM,
-      consistencyScore: auditResult.consistencyScore,
     };
     await dynamo.send(new PutCommand({ TableName: TABLES.TRANSACTIONS, Item: txn }));
-    await logAudit(txnId, "AI_GUARDIAN", llmDecision.reason, timestamp);
-    return { txnId, decision: llmDecision.decision, xgboostScore, llmDecision, bypass: false };
+    await logAudit(txnId, "AI_GUARDIAN", txn.reason, timestamp);
+    return { txnId, decision: "HOLD", decisionBy: "AI_GUARDIAN", xgboostScore, bypass: false };
   }
 
-  // family or community guardian — start 3 minute timer, notify guardian
+  const layer2Result = {
+    decision: llmDecision.decision,
+    confidence: llmDecision.confidence,
+    evidence_used: llmDecision.evidence_used,
+    reason: llmDecision.reason,
+  };
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // LAYER 3 — Guardrail (Alibaba Cloud Qwen)
+  // Audits Layer 2 output for hallucinations
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  let guardrailResult;
+  try {
+    guardrailResult = await runGuardrail(llmDecision, {
+      txnId,
+      amount,
+      receiverPhone,
+      receiverName,
+      xgboostScore,
+      strikeCount,
+      userAvgTransaction,
+      age: user.age ?? 0,
+      incomeTier: user.incomeTier ?? "unknown",
+    });
+  } catch (guardrailError) {
+    console.error("Layer 3 guardrail error:", guardrailError);
+    // if guardrail fails, trust LLM but flag it
+    guardrailResult = {
+      verdict: "ESCALATE" as const,
+      finalDecision: "HOLD" as const,
+      reason: "Guardrail unavailable — defaulting to HOLD",
+      reasonBM: "Sistem pengesahan tidak tersedia. Transaksi ditahan untuk keselamatan.",
+      guardrailNotes: `Guardrail error: ${guardrailError}`,
+    };
+  }
+
+  const layer3Result = {
+    verdict: guardrailResult.verdict,
+    finalDecision: guardrailResult.finalDecision,
+    guardrailNotes: guardrailResult.guardrailNotes,
+  };
+
+  // ── Store final transaction ─────────────────────────────────────────────────
   const txn = {
-    txnId, senderId, receiverPhone, receiverName, amount,
+    txnId,
+    senderId,
+    receiverPhone,
+    receiverName,
+    amount,
     riskScore: xgboostScore,
-    decision: "PENDING",
-    decisionBy: "AWAITING_GUARDIAN",
-    reason: "Grey zone — awaiting guardian decision",
-    reasonBM: "Transaksi ini sedang disemak oleh penjaga anda. Sila tunggu.",
+    decision: guardrailResult.finalDecision,
+    decisionBy: "AI_GUARDIAN",
+    reason: guardrailResult.reason,
+    reasonBM: guardrailResult.reasonBM,
+    confidence: llmDecision.confidence,
     timestamp,
     reported: false,
     timerExpiry,
     guardianId: user.guardianId ?? null,
-    auditVerdict: null,
-    auditReason: null,
-    auditReasonBM: null,
-    consistencyScore: null,
   };
-  await dynamo.send(new PutCommand({ TableName: TABLES.TRANSACTIONS, Item: txn }));
-  await logAudit(txnId, "AWAITING_GUARDIAN", txn.reason, timestamp);
 
+  await dynamo.send(new PutCommand({ TableName: TABLES.TRANSACTIONS, Item: txn }));
+  await logAudit(txnId, "AI_GUARDIAN", guardrailResult.reason, timestamp, {
+    xgboostScore,
+    llmDecision: llmDecision.decision,
+    guardrailVerdict: guardrailResult.verdict,
+  });
+
+  // ── Return full pipeline result ─────────────────────────────────────────────
   return {
     txnId,
-    decision: "PENDING",
-    xgboostScore,
-    timerExpiry,
-    guardianId: user.guardianId,
+    decision: guardrailResult.finalDecision,
+    decisionBy: "AI_GUARDIAN",
+    reasonBM: guardrailResult.reasonBM,
     bypass: false,
+    pipeline: {
+      layer1_xgboost: layer1Result,
+      layer2_bedrock: layer2Result,
+      layer3_qwen: layer3Result,
+    },
   };
-}
-
-async function logAudit(
-  txnId: string,
-  decisionBy: string,
-  reason: string,
-  timestamp: string
-) {
-  await dynamo.send(
-    new PutCommand({
-      TableName: TABLES.AUDIT_LOG,
-      Item: { txnId, decisionBy, reason, timestamp },
-    })
-  );
 }
