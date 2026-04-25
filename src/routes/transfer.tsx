@@ -2,8 +2,8 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { PhoneShell } from "@/components/PhoneShell";
 import { Button } from "@/components/ui/button";
 import { ArrowRightLeft } from "lucide-react";
-import { useState, useEffect } from "react";
-import { getDemoTransaction } from "@/lib/api";
+import { useState } from "react";
+import { checkTransaction, mapApiResponseToRiskScore } from "@/lib/api";
 
 export const Route = createFileRoute("/transfer")({
   head: () => ({
@@ -14,24 +14,41 @@ export const Route = createFileRoute("/transfer")({
 
 type Stage = "form" | "analysing";
 
+// global store for passing data between routes (simple for hackathon)
+export let lastTransactionResult: any = null;
+
 function TransferScreen() {
   const navigate = useNavigate();
   const [stage, setStage] = useState<Stage>("form");
   const [recipient, setRecipient] = useState("");
+  const [recipientName, setRecipientName] = useState("");
   const [amount, setAmount] = useState("");
+  const [error, setError] = useState("");
 
-  useEffect(() => {
-    getDemoTransaction().then((tx) => {
-      setRecipient(tx.recipient_phone);
-      setAmount(String(tx.amount));
-    });
-  }, []);
-
-  function handleSend() {
+  async function handleSend() {
+    if (!recipient || !amount) return;
     setStage("analysing");
-    setTimeout(() => {
+    setError("");
+
+    try {
+      const apiResponse = await checkTransaction({
+        receiverPhone: recipient,
+        receiverName: recipientName || "Unknown Recipient",
+        amount: parseFloat(amount),
+      });
+
+      lastTransactionResult = mapApiResponseToRiskScore(apiResponse, {
+        receiverPhone: recipient,
+        receiverName: recipientName || "Unknown Recipient",
+        amount: parseFloat(amount),
+      });
+
       navigate({ to: "/risk-score" });
-    }, 2000);
+    } catch (err) {
+      console.error(err);
+      setError("Connection error. Please try again.");
+      setStage("form");
+    }
   }
 
   if (stage === "analysing") {
@@ -39,7 +56,6 @@ function TransferScreen() {
       <PhoneShell title="Transfer" showBack backTo="/home" hideNav>
         <div className="flex flex-col items-center justify-center h-[calc(100vh-88px)] px-6 text-center">
           <div className="relative w-24 h-24 mb-6">
-            {/* Pulsing rings */}
             <span className="absolute inset-0 rounded-full bg-primary/20 animate-ping" />
             <span className="absolute inset-2 rounded-full bg-primary/30 animate-ping [animation-delay:200ms]" />
             <div className="relative w-24 h-24 rounded-full bg-primary-soft flex items-center justify-center">
@@ -49,6 +65,9 @@ function TransferScreen() {
           <h2 className="text-xl font-bold text-foreground">Analysing transaction...</h2>
           <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
             GOGuardian AI is scanning for risks
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            XGBoost → Bedrock Nova → Qwen Guardrail
           </p>
           <div className="mt-6 flex items-center gap-2">
             {[0, 150, 300].map((delay) => (
@@ -83,6 +102,19 @@ function TransferScreen() {
 
           <div>
             <label className="text-sm font-medium text-foreground mb-2 block">
+              Recipient Name (optional)
+            </label>
+            <input
+              type="text"
+              value={recipientName}
+              onChange={(e) => setRecipientName(e.target.value)}
+              placeholder="e.g. Ahmad bin Ali"
+              className="w-full border border-input rounded-xl px-4 py-3.5 text-sm outline-none bg-background text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary focus:border-primary transition-all"
+            />
+          </div>
+
+          <div>
+            <label className="text-sm font-medium text-foreground mb-2 block">
               Amount (RM)
             </label>
             <div className="flex items-center border border-input rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-primary focus-within:border-primary bg-background transition-all">
@@ -101,7 +133,10 @@ function TransferScreen() {
           </div>
         </div>
 
-        {/* GOGuardian notice */}
+        {error && (
+          <p className="text-sm text-red-500 text-center">{error}</p>
+        )}
+
         <div className="flex items-center gap-2 bg-primary-soft px-4 py-3 rounded-xl text-xs text-primary font-medium">
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
             <path d="M7 1L13 4V10L7 13L1 10V4L7 1Z" stroke="currentColor" strokeWidth="1.2" fill="currentColor" fillOpacity="0.15" />
