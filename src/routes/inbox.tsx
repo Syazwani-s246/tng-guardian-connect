@@ -15,8 +15,8 @@ const initialNotifications = [
   { id: 1, type: "trustee", title: "Approval Request Sent", desc: "A suspicious transaction alert was sent to Ahmad Hafizi for review.", time: "Just now", unread: true },
   { id: 2, type: "transfer", title: "Transfer Received", desc: "You received RM200 from Ahmad Hafizi.", time: "Yesterday", unread: false },
   { id: 3, type: "alert", title: "GOGuardian Alert", desc: "An overseas QR payment of RM800 was flagged and blocked.", time: "2 days ago", unread: false },
-  { id: 4, type: "trustee", title: "Trustee Added", desc: "Siti Norzahra has accepted your Trustee invitation.", time: "3 days ago", unread: false },
-  { id: 5, type: "transfer", title: "Transfer Received", desc: "You received RM500 from Siti Norzahra.", time: "5 days ago", unread: false },
+  { id: 4, type: "trustee", title: "Trustee Added", desc: "Ahmad Hafizi has accepted your Trustee invitation.", time: "3 days ago", unread: false },
+  { id: 5, type: "transfer", title: "Transfer Received", desc: "You received RM500 from Ahmad Hafizi.", time: "5 days ago", unread: false },
 ];
 
 const iconConfig = {

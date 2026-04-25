@@ -21,8 +21,6 @@ type Trustee = {
 
 const INITIAL_TRUSTEES: Trustee[] = [
   { name: "Ahmad Hafizi", relation: "Son", city: "Kuala Lumpur", initials: "AH", lastActive: "2 hours ago", status: "Active" },
-  { name: "Siti Norzahra", relation: "Daughter", city: "Johor Bahru", initials: "SN", lastActive: "Yesterday", status: "Active" },
-  { name: "Razif Ikhwan", relation: "Son", city: "Penang", initials: "RI", lastActive: "3 days ago", status: "Active" },
 ];
 
 type View =
@@ -141,7 +139,7 @@ function TrusteesScreen() {
           className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl border border-primary/30 bg-primary-soft text-primary text-sm font-medium"
         >
           <Plus size={16} />
-          Add Trustee
+          Change Trustee
         </button>
       </div>
     </PhoneShell>
@@ -166,6 +164,12 @@ function AddTrusteeForm({
   return (
     <PhoneShell title="Add a Trustee" showBack onBack={onBack}>
       <div className="px-4 pt-5 pb-8 space-y-5">
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3.5">
+          <p className="text-sm text-amber-800 font-medium leading-snug">
+            You currently have one active Trustee. Adding a new Trustee will replace Ahmad Hafizi.
+          </p>
+        </div>
+
         <p className="text-sm text-muted-foreground -mt-2 leading-snug">
           Invite someone you trust to help protect your account
         </p>
