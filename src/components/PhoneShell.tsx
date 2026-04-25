@@ -78,7 +78,7 @@ function BottomNav() {
             <Link
               key={i}
               to={to}
-              className="flex flex-col items-center justify-center gap-1"
+              className="flex flex-col items-center justify-center gap-1 cursor-pointer"
             >
               <Icon
                 size={primary ? 26 : 22}
