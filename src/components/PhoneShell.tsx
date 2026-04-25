@@ -52,20 +52,20 @@ function BottomNav() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
   const items = [
-    { to: "/home", icon: Home, label: "Home" },
-    { to: "/home", icon: Wallet, label: "Wallet" },
-    { to: "/ai-monitor", icon: Bot, label: "Activity", primary: true },
-    { to: "/home", icon: Bell, label: "Inbox" },
-    { to: "/me", icon: User, label: "Me" },
+    { to: "/home", activePath: "/home", icon: Home, label: "Home" },
+    { to: "/home", activePath: "/wallet", icon: Wallet, label: "Wallet" },
+    { to: "/ai-monitor", activePath: "/ai-monitor", icon: Bot, label: "Activity", primary: true },
+    { to: "/home", activePath: "/inbox", icon: Bell, label: "Inbox" },
+    { to: "/me", activePath: "/me", icon: User, label: "Me" },
   ];
 
   return (
     <nav className="absolute bottom-0 left-0 right-0 bg-card border-t border-border">
       <div className="grid grid-cols-5 h-20 px-2 pt-2 pb-3">
-        {items.map(({ to, icon: Icon, label, primary }, i) => {
+        {items.map(({ to, activePath, icon: Icon, label, primary }, i) => {
           const active = primary
-            ? pathname.startsWith("/ai-monitor")
-            : pathname === to;
+            ? pathname.startsWith(activePath)
+            : pathname === activePath;
           return (
             <Link
               key={i}
