@@ -1,53 +1,93 @@
-const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN!;
-const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID!;
+const BOT_TOKEN = "8073198069:AAFCttfrh7i7ztS8-iKY-uFgLdaVdZV3bH8";
+const DEFAULT_CHAT_ID = "6817798193";
 
-export interface GuardianNotifyResult {
-  success: boolean;
-  messageSid?: string;
-  error?: string;
-}
-
-/**
- * Send a guardian verification message via Telegram Bot API.
- */
-export async function sendGuardianWhatsApp(params: {
-  txnId: string;
-  senderId: string;
+export async function sendGuardianAlert(params: {
+  chatId?: string;
   receiverName: string;
+  receiverPhone: string;
   amount: number;
-}): Promise<GuardianNotifyResult> {
-  const text =
-    `🔔 *GOGuardian Payment Verification*\n\n` +
-    `A transaction requires your approval:\n\n` +
-    `👤 From: \`${params.senderId}\`\n` +
-    `👉 To: *${params.receiverName}*\n` +
-    `💰 Amount: *RM${params.amount.toFixed(2)}*\n` +
-    `🆔 TxnID: \`${params.txnId}\`\n\n` +
-    `Reply *APPROVE* or *REJECT*`;
+  xgboostScore: number;
+  decision: string;
+  reasonBM: string;
+  txnId: string;
+}) {
+  const {
+    chatId = DEFAULT_CHAT_ID,
+    receiverName,
+    receiverPhone,
+    amount,
+    xgboostScore,
+    decision,
+    reasonBM,
+    txnId,
+  } = params;
 
-  const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+  const emoji =
+    decision === "BLOCKED" ? "🚫" :
+    decision === "HOLD" ? "⚠️" :
+    decision === "PENDING" ? "👁️" : "✅";
+
+  const riskScore = Math.round(xgboostScore * 100);
+  const riskLabel =
+    riskScore <= 30 ? "Low Risk 🟢" :
+    riskScore <= 60 ? "Medium Risk 🟡" : "High Risk 🔴";
+
+  const message = `
+${emoji} *GOGuardian Alert*
+━━━━━━━━━━━━━━━━━━━━
+
+👤 *Recipient:* ${receiverName}
+📱 *Phone:* ${receiverPhone}
+💰 *Amount:* RM${amount.toFixed(2)}
+🎯 *Risk Score:* ${riskScore}/100 — ${riskLabel}
+⚡ *Decision:* *${decision}*
+
+📝 *Penjelasan:*
+${reasonBM}
+
+🔗 *Txn ID:* \`${txnId}\`
+━━━━━━━━━━━━━━━━━━━━
+_GOGuardian AI — Melindungi pengguna yang terdedah_
+  `.trim();
 
   try {
-    const response = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        chat_id: TELEGRAM_CHAT_ID,
-        text,
-        parse_mode: "Markdown",
-      }),
-    });
+    const res = await fetch(
+      `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          chat_id: chatId,
+          text: message,
+          parse_mode: "Markdown",
+        }),
+      }
+    );
 
-    const data = await response.json();
-
-    if (!response.ok || !data.ok) {
-      console.error("Telegram Error:", data);
-      return { success: false, error: data.description ?? "Telegram API error" };
+    if (!res.ok) {
+      const err = await res.text();
+      console.error("Telegram error:", err);
     }
 
-    return { success: true, messageSid: String(data.result.message_id) };
-  } catch (err: any) {
-    console.error("Telegram network error:", err);
-    return { success: false, error: err.message ?? "Network or Parsing Error" };
+    return res.ok;
+  } catch (error) {
+    console.error("Telegram send failed:", error);
+    return false;
   }
+}
+
+export async function sendPendingAlert(params: {
+  receiverName: string;
+  receiverPhone: string;
+  amount: number;
+}) {
+  return sendGuardianAlert({
+    receiverName: params.receiverName,
+    receiverPhone: params.receiverPhone,
+    amount: params.amount,
+    xgboostScore: 0.5,
+    decision: "PENDING",
+    reasonBM: "Pengesahan diperlukan. Sila semak dan balas dalam masa 1 minit.",
+    txnId: "pending-guardian-review",
+  });
 }

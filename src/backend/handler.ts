@@ -52,6 +52,17 @@ const path = rawPath.replace(/^\/prod/, "");
       result = await reportReceiver(body);
     }
 
+    // POST /guardian/alert
+    else if (method === "POST" && path === "/guardian/alert") {
+        const { sendPendingAlert } = await import("./lib/twilio");
+    await sendPendingAlert({
+      receiverName: body.receiverName,
+      receiverPhone: body.receiverPhone,
+      amount: body.amount,
+      });
+      result = { success: true };
+    }
+
     // POST /webhook/telegram (or legacy /webhook/twilio)
     else if (method === "POST" && (path === "/webhook/telegram" || path === "/webhook/twilio")) {
       const webhookResult = await twilioWebhook({

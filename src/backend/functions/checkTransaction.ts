@@ -2,7 +2,7 @@ import { GetCommand, PutCommand } from "@aws-sdk/lib-dynamodb";
 import { dynamo, TABLES } from "../lib/dynamodb";
 import { invokeGuardianLLM, TransactionContext } from "../lib/bedrock";
 import { runGuardrail } from "../lib/qwen";
-import { sendGuardianWhatsApp } from "../lib/twilio";
+import { sendGuardianAlert } from "../lib/twilio";
 import { v4 as uuidv4 } from "uuid";
 
 // ─── Layer 1: XGBoost Simulation ─────────────────────────────────────────────
@@ -133,15 +133,16 @@ export async function checkTransaction(event: {
   }
 
   // ── Send Telegram notification to guardian for every transaction ──────────
-  sendGuardianWhatsApp({ txnId, senderId, receiverName, amount })
-    .then((res) => {
-      if (res.success) {
-        console.log("Telegram notification sent:", res.messageSid);
-      } else {
-        console.error("Telegram notification failed:", res.error);
-      }
-    })
-    .catch((err) => console.error("Telegram notification error:", err));
+  sendGuardianAlert({
+  receiverName,
+  receiverPhone,
+  amount,
+  xgboostScore: 0.5,
+  decision: "PENDING",
+  reasonBM: "Transaksi baharu dikesan. Sila semak dan ambil tindakan.",
+  txnId,
+}).catch((err) => console.error("Telegram notification error:", err));
+   
 
   // ─────────────────────────────────────────────────────────────────────────────
   // LAYER 1 — XGBoost Risk Scoring
