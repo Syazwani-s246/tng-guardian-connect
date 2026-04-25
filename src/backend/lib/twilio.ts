@@ -1,6 +1,5 @@
-// Telegram Bot credentials (hackathon)
-const TELEGRAM_BOT_TOKEN = "REDACTED_TELEGRAM_TOKEN";
-const TELEGRAM_CHAT_ID = "6355405135";
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN!;
+const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID!;
 
 export interface GuardianNotifyResult {
   success: boolean;
