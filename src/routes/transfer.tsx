@@ -30,7 +30,15 @@ function TransferScreen() {
   function handleSend() {
     setStage("analysing");
     setTimeout(() => {
-      navigate({ to: "/risk-score" });
+      navigate({
+        to: "/risk-score",
+        search: {
+          recipient_phone: recipient,
+          recipient_name: "Unknown Recipient",
+          amount: parseFloat(amount) || 0,
+          country: "Malaysia",
+        },
+      });
     }, 2000);
   }
 
