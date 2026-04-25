@@ -10,7 +10,8 @@ import {
   EyeOff,
   ChevronRight,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { getUser, getRecentTransactions } from "@/lib/api";
 
 export const Route = createFileRoute("/home")({
   head: () => ({
@@ -19,48 +20,42 @@ export const Route = createFileRoute("/home")({
   component: HomeScreen,
 });
 
-const transactions = [
-  {
-    name: "Grab",
-    category: "Transport",
-    amount: "-RM 15.00",
-    time: "Today, 9:12 AM",
-    initials: "G",
-    bg: "bg-green-100",
-    text: "text-green-700",
-  },
-  {
-    name: "TNB Bill",
-    category: "Utilities",
-    amount: "-RM 87.50",
-    time: "Yesterday",
-    initials: "T",
-    bg: "bg-yellow-100",
-    text: "text-yellow-700",
-  },
-  {
-    name: "99 Speedmart",
-    category: "Groceries",
-    amount: "-RM 23.80",
-    time: "Mon, 22 Apr",
-    initials: "9",
-    bg: "bg-red-100",
-    text: "text-red-700",
-  },
-];
+const txMeta: Record<string, { initials: string; bg: string; text: string; category: string }> = {
+  Grab:               { initials: "G", bg: "bg-green-100",  text: "text-green-700",  category: "Transport" },
+  TNB:                { initials: "T", bg: "bg-yellow-100", text: "text-yellow-700", category: "Utilities" },
+  "99 Speedmart":     { initials: "9", bg: "bg-red-100",    text: "text-red-700",    category: "Groceries" },
+  "Unknown Recipient":{ initials: "?", bg: "bg-gray-100",   text: "text-gray-500",   category: "Unknown" },
+  "Fast Investment Co":{ initials: "F", bg: "bg-orange-100", text: "text-orange-700", category: "Investment" },
+};
+
+function formatDate(dateStr: string) {
+  const d = new Date(dateStr);
+  return d.toLocaleDateString("en-MY", { day: "numeric", month: "short" });
+}
 
 function HomeScreen() {
   const [showBalance, setShowBalance] = useState(true);
+  const [balance, setBalance] = useState<number | null>(null);
+  const [userName, setUserName] = useState("Hi there");
+  const [transactions, setTransactions] = useState<Awaited<ReturnType<typeof getRecentTransactions>>>([]);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    getUser().then((u) => {
+      setBalance(u.balance);
+      setUserName(u.name);
+    });
+    getRecentTransactions().then(setTransactions);
+  }, []);
 
   return (
     <PhoneShell>
-      {/* Blue header — connects seamlessly with the blue status bar */}
+      {/* Blue header */}
       <div className="bg-primary text-primary-foreground px-5 pt-3 pb-8 rounded-b-3xl">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-primary-foreground/70 text-xs mb-0.5">Good morning,</p>
-            <h1 className="text-[17px] font-semibold leading-tight">Hi, Mak Cik Rohani 👋</h1>
+            <h1 className="text-[17px] font-semibold leading-tight">Hi, {userName} 👋</h1>
           </div>
           <div className="w-10 h-10 rounded-full bg-white/20 border border-white/30 flex items-center justify-center text-xs font-bold tracking-wide">
             MR
@@ -82,7 +77,11 @@ function HomeScreen() {
             </button>
           </div>
           <div className="text-[28px] font-bold text-foreground tracking-tight">
-            {showBalance ? "RM 1,250.00" : "RM ••••••"}
+            {showBalance
+              ? balance !== null
+                ? `RM ${balance.toLocaleString("en-MY", { minimumFractionDigits: 2 })}`
+                : "Loading..."
+              : "RM ••••••"}
           </div>
           <p className="text-[11px] text-muted-foreground mt-0.5">Updated just now</p>
         </div>
@@ -116,15 +115,15 @@ function HomeScreen() {
           ))}
         </div>
 
-        {/* GOGuardian banner */}
-        <Link to="/guardian" className="block">
+        {/* GOGuardian AI Protection banner */}
+        <Link to="/ai-monitor" className="block">
           <div className="flex items-center gap-3 bg-card rounded-2xl px-4 py-3.5 border border-border shadow-card hover:bg-primary-soft/30 transition-colors">
             <div className="w-10 h-10 rounded-full bg-primary-soft flex items-center justify-center shrink-0">
               <ShieldCheck size={20} className="text-primary" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-foreground">Protected by GOGuardian</p>
-              <p className="text-xs text-muted-foreground">AI-powered transaction shield</p>
+              <p className="text-sm font-semibold text-foreground">GOGuardian AI</p>
+              <p className="text-xs text-muted-foreground">AI Protection Active</p>
             </div>
             <div className="flex items-center gap-2 shrink-0">
               <span className="bg-success-soft text-success text-[11px] font-semibold px-2 py-0.5 rounded-full">
@@ -139,25 +138,33 @@ function HomeScreen() {
         <div>
           <div className="flex items-center justify-between mb-2.5">
             <h2 className="text-sm font-semibold text-foreground">Recent Transactions</h2>
-            <button className="text-xs text-primary font-medium">See all</button>
+            <Link to="/me" className="text-xs text-primary font-medium">See all</Link>
           </div>
           <div className="bg-card rounded-2xl border border-border overflow-hidden divide-y divide-border">
-            {transactions.map((tx) => (
-              <div key={tx.name} className="flex items-center gap-3 px-4 py-3.5">
-                <div
-                  className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm shrink-0 ${tx.bg} ${tx.text}`}
-                >
-                  {tx.initials}
+            {transactions.slice(0, 3).map((tx) => {
+              const meta = txMeta[tx.recipient] ?? {
+                initials: tx.recipient[0],
+                bg: "bg-gray-100",
+                text: "text-gray-500",
+                category: "Transfer",
+              };
+              return (
+                <div key={tx.id} className="flex items-center gap-3 px-4 py-3.5">
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm shrink-0 ${meta.bg} ${meta.text}`}>
+                    {meta.initials}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-foreground">{tx.recipient}</p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {meta.category} · {formatDate(tx.date)}
+                    </p>
+                  </div>
+                  <span className="text-sm font-semibold text-foreground shrink-0">
+                    -RM {tx.amount.toFixed(2)}
+                  </span>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-foreground">{tx.name}</p>
-                  <p className="text-xs text-muted-foreground truncate">
-                    {tx.category} · {tx.time}
-                  </p>
-                </div>
-                <span className="text-sm font-semibold text-foreground shrink-0">{tx.amount}</span>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </div>

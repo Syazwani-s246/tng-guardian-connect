@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Home, Wallet, Shield, Bell, User } from "lucide-react";
+import { Home, Wallet, Bot, Bell, User } from "lucide-react";
 import type { ReactNode } from "react";
 
 interface PhoneShellProps {
@@ -13,11 +13,11 @@ interface PhoneShellProps {
 export function PhoneShell({ children, title, showBack, backTo = "/", hideNav }: PhoneShellProps) {
   return (
     <div className="min-h-screen bg-secondary flex justify-center">
-      <div className="w-full max-w-[420px] bg-background min-h-screen flex flex-col relative shadow-elevated">
+      <div className="w-full max-w-[390px] bg-background min-h-screen flex flex-col relative shadow-elevated">
         {/* Status bar */}
         <div className="h-11 bg-primary text-primary-foreground flex items-center justify-between px-5 text-xs font-medium">
           <span>9:41</span>
-          <span>GOGuardian</span>
+          <span className="font-bold tracking-tight">TNG eWallet</span>
           <span>100%</span>
         </div>
 
@@ -54,7 +54,7 @@ function BottomNav() {
   const items = [
     { to: "/home", icon: Home, label: "Home" },
     { to: "/home", icon: Wallet, label: "Wallet" },
-    { to: "/guardian", icon: Shield, label: "Guardian", primary: true },
+    { to: "/ai-monitor", icon: Bot, label: "Activity", primary: true },
     { to: "/home", icon: Bell, label: "Inbox" },
     { to: "/me", icon: User, label: "Me" },
   ];
@@ -64,8 +64,8 @@ function BottomNav() {
       <div className="grid grid-cols-5 h-20 px-2 pt-2 pb-3">
         {items.map(({ to, icon: Icon, label, primary }, i) => {
           const active = primary
-            ? pathname.startsWith("/guardian") || pathname.startsWith("/family") || pathname.startsWith("/alert") || pathname.startsWith("/blocked")
-            : !primary && pathname === to;
+            ? pathname.startsWith("/ai-monitor")
+            : pathname === to;
           return (
             <Link
               key={i}
@@ -74,10 +74,10 @@ function BottomNav() {
             >
               <Icon
                 size={primary ? 26 : 22}
-                className={active || primary ? "text-primary" : "text-muted-foreground"}
-                strokeWidth={active || primary ? 2.4 : 2}
+                className={active ? "text-primary" : "text-muted-foreground"}
+                strokeWidth={active ? 2.4 : 2}
               />
-              <span className={`text-[11px] ${active || primary ? "text-primary font-semibold" : "text-muted-foreground"}`}>
+              <span className={`text-[11px] ${active ? "text-primary font-semibold" : "text-muted-foreground"}`}>
                 {label}
               </span>
             </Link>

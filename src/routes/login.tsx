@@ -75,7 +75,6 @@ function LoginScreen() {
             </svg>
             <span>Secured by Touch 'n Go Digital Sdn Bhd</span>
           </div>
-          <p className="text-[10px] text-muted-foreground/60">Licensed by Bank Negara Malaysia</p>
         </div>
       </div>
     </PhoneShell>

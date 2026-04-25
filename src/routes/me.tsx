@@ -1,64 +1,21 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { PhoneShell } from "@/components/PhoneShell";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle, CheckCircle2, Bot, ShieldAlert, ShieldCheck } from "lucide-react";
-import { useState } from "react";
+import { AlertTriangle, CheckCircle2, ShieldAlert, ShieldCheck, Settings } from "lucide-react";
+import { useState, useEffect } from "react";
+import { getUser, getRecentTransactions } from "@/lib/api";
 
-type TxStatus = "Approved" | "Blocked" | "AI Decided";
+export const Route = createFileRoute("/me")({
+  head: () => ({
+    meta: [{ title: "My Profile — TNG eWallet" }],
+  }),
+  component: MeScreen,
+});
 
-interface Transaction {
-  id: string;
-  amount: string;
-  recipient: string;
-  date: Date;
-  status: TxStatus;
-  preMarked?: boolean;
-}
+type RawTx = Awaited<ReturnType<typeof getRecentTransactions>>[number];
 
-const MOCK_TRANSACTIONS: Transaction[] = [
-  {
-    id: "tx1",
-    amount: "RM 500.00",
-    recipient: "Unknown Recipient",
-    date: new Date("2026-04-22"),
-    status: "Approved",
-  },
-  {
-    id: "tx2",
-    amount: "RM 1,200.00",
-    recipient: "Fast Investment Co",
-    date: new Date("2026-04-20"),
-    status: "Approved",
-    preMarked: true,
-  },
-  {
-    id: "tx3",
-    amount: "RM 350.00",
-    recipient: "Ali bin Ahmad",
-    date: new Date("2026-04-24"),
-    status: "Blocked",
-  },
-  {
-    id: "tx4",
-    amount: "RM 200.00",
-    recipient: "John Tan",
-    date: new Date("2026-04-13"),
-    status: "Approved",
-  },
-];
-
-function daysSince(date: Date): number {
-  const now = new Date();
-  const diff = now.getTime() - date.getTime();
-  return Math.floor(diff / (1000 * 60 * 60 * 24));
-}
-
-function formatDate(date: Date): string {
-  return date.toLocaleDateString("en-MY", { day: "numeric", month: "short", year: "numeric" });
-}
-
-function StatusBadge({ status }: { status: TxStatus }) {
-  if (status === "Approved") {
+function StatusBadge({ status }: { status: string }) {
+  if (status === "approved") {
     return (
       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-success-soft text-success-foreground">
         <CheckCircle2 size={10} />
@@ -66,36 +23,34 @@ function StatusBadge({ status }: { status: TxStatus }) {
       </span>
     );
   }
-  if (status === "Blocked") {
-    return (
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-destructive-soft text-destructive">
-        <AlertTriangle size={10} />
-        Blocked
-      </span>
-    );
-  }
   return (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-primary-soft text-primary">
-      <Bot size={10} />
-      AI Decided
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-destructive-soft text-destructive">
+      <AlertTriangle size={10} />
+      Blocked
     </span>
   );
 }
 
-export const Route = createFileRoute("/me")({
-  head: () => ({
-    meta: [
-      { title: "My Profile — GOGuardian" },
-      { name: "description", content: "View your profile and recent flagged transactions." },
-    ],
-  }),
-  component: MeScreen,
-});
+function formatDate(dateStr: string) {
+  return new Date(dateStr).toLocaleDateString("en-MY", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
 
 function MeScreen() {
-  const [markedScam, setMarkedScam] = useState<Set<string>>(
-    () => new Set(MOCK_TRANSACTIONS.filter((t) => t.preMarked).map((t) => t.id))
-  );
+  const [user, setUser] = useState<{ name: string; phone: string; protection: string } | null>(null);
+  const [transactions, setTransactions] = useState<RawTx[]>([]);
+  const [markedScam, setMarkedScam] = useState<Set<number>>(new Set());
+
+  useEffect(() => {
+    getUser().then(setUser);
+    getRecentTransactions().then((txs) => {
+      setTransactions(txs);
+      setMarkedScam(new Set(txs.filter((t) => t.scam_marked).map((t) => t.id)));
+    });
+  }, []);
 
   return (
     <PhoneShell title="My Profile">
@@ -105,32 +60,41 @@ function MeScreen() {
           <div className="w-16 h-16 rounded-full bg-primary-soft text-primary flex items-center justify-center text-2xl font-bold shrink-0">
             M
           </div>
-          <div>
-            <p className="font-semibold text-foreground text-lg">Mak Cik Rohani</p>
-            <p className="text-sm text-muted-foreground">rohani@example.com</p>
-            <p className="text-xs text-muted-foreground mt-0.5">Protected Member</p>
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold text-foreground text-lg">{user?.name ?? "Loading..."}</p>
+            <p className="text-sm text-muted-foreground">{user?.phone}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">{user?.protection}</p>
           </div>
+          <Link to="/settings" aria-label="Settings">
+            <Settings size={20} className="text-muted-foreground hover:text-foreground transition-colors" />
+          </Link>
         </div>
 
         {/* Recent Transactions */}
         <div>
-          <h2 className="text-base font-semibold text-foreground mb-3">Recent Flagged Transactions</h2>
+          <h2 className="text-base font-semibold text-foreground mb-3">Transaction History</h2>
           <div className="bg-card rounded-3xl shadow-card border border-border overflow-hidden">
-            {MOCK_TRANSACTIONS.map((tx, i) => {
-              const days = daysSince(tx.date);
+            {transactions.map((tx, i) => {
               const isMarked = markedScam.has(tx.id);
-              const canMark = tx.status === "Approved" && days <= 7 && !isMarked;
-              const showSafe = tx.status === "Approved" && days > 7 && !isMarked;
+              const canMark =
+                tx.status === "approved" &&
+                !tx.scam_marked &&
+                !isMarked &&
+                "mark_deadline" in tx &&
+                new Date() <= new Date(tx.mark_deadline as string);
+              const showSafe = "safe" in tx && tx.safe === true;
 
               return (
                 <div
                   key={tx.id}
-                  className={`px-5 py-4 ${i < MOCK_TRANSACTIONS.length - 1 ? "border-b border-border" : ""}`}
+                  className={`px-5 py-4 ${i < transactions.length - 1 ? "border-b border-border" : ""}`}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-semibold text-foreground text-base">{tx.amount}</span>
+                        <span className="font-semibold text-foreground text-base">
+                          RM {tx.amount.toFixed(2)}
+                        </span>
                         <StatusBadge status={tx.status} />
                       </div>
                       <p className="text-sm text-muted-foreground mt-0.5 truncate">{tx.recipient}</p>
@@ -144,7 +108,7 @@ function MeScreen() {
                           Reported as Scam
                         </span>
                       )}
-                      {showSafe && (
+                      {showSafe && !isMarked && (
                         <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-semibold bg-success-soft text-success-foreground">
                           <ShieldCheck size={10} />
                           Safe
