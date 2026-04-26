@@ -1,5 +1,5 @@
-const BOT_TOKEN = "REDACTED_TELEGRAM_TOKEN";
-const DEFAULT_CHAT_ID = "6817798193";
+const BOT_TOKEN = import.meta.env.VITE_TELEGRAM_BOT_TOKEN;
+const DEFAULT_CHAT_ID = import.meta.env.VITE_TELEGRAM_DEFAULT_CHAT_ID;
 
 export async function sendGuardianAlert(params: {
   chatId?: string;
