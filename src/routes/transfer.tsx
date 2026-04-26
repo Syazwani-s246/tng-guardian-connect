@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router";
 import { PhoneShell } from "@/components/PhoneShell";
 import { Button } from "@/components/ui/button";
 import { ArrowRightLeft } from "lucide-react";
@@ -10,6 +10,11 @@ import mockData from "@/data/mockData.json";
 export const Route = createFileRoute("/transfer")({
   head: () => ({
     meta: [{ title: "Transfer — TNG eWallet" }],
+  }),
+  validateSearch: (search: Record<string, unknown>) => ({
+    name: (search.name as string) ?? "",
+    phone: (search.phone as string) ?? "",
+    amount: (search.amount as string) ?? "",
   }),
   component: TransferScreen,
 });
@@ -43,10 +48,11 @@ function WhatsAppIcon() {
 
 function TransferScreen() {
   const navigate = useNavigate();
+  const search = useSearch({ from: "/transfer" });
   const [stage, setStage] = useState<Stage>("form");
-  const [recipient, setRecipient] = useState("");
-  const [recipientName, setRecipientName] = useState("");
-  const [amount, setAmount] = useState("");
+  const [recipient, setRecipient] = useState(search.phone ?? "");
+  const [recipientName, setRecipientName] = useState(search.name ?? "");
+  const [amount, setAmount] = useState(search.amount ?? "");
   const [error, setError] = useState("");
   const [countdown, setCountdown] = useState(60);
   const [trusteeNote, setTrusteeNote] = useState("Waiting for Trustee response...");
