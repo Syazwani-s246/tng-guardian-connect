@@ -33,9 +33,9 @@ export async function runGuardrail(
 
   // initialize INSIDE the function so env vars are loaded at runtime
   const client = new OpenAI({
-    apiKey: "sk-ae101196870341359f56325882ca1acf",
-    baseURL: "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
-  });
+  apiKey: import.meta.env.VITE_OPENAI_API_KEY,
+  baseURL: import.meta.env.VITE_OPENAI_BASE_URL,
+});
 
   const prompt = `You are a financial fraud guardrail AI for GOGuardian, TNG eWallet Malaysia.
 
