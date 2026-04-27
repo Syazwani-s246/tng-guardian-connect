@@ -1,7 +1,7 @@
 import { dynamo, TABLES } from "../lib/dynamodb";
 import { GetCommand, UpdateCommand, ScanCommand } from "@aws-sdk/lib-dynamodb";
 
-const BOT_TOKEN = "REDACTED_TELEGRAM_TOKEN";
+const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN!;
 
 export async function twilioWebhook(event: {
   body: string;
