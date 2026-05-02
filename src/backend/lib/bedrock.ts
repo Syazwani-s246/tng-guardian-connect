@@ -1,7 +1,4 @@
-import {
-  BedrockRuntimeClient,
-  InvokeModelCommand,
-} from "@aws-sdk/client-bedrock-runtime";
+import OpenAI from "openai";
 
 export interface TransactionContext {
   txnId: string;
@@ -30,27 +27,16 @@ export interface BedrockDecision {
 export async function invokeGuardianLLM(
   context: TransactionContext
 ): Promise<BedrockDecision> {
-  // AWS SDK in browser requires explicit credentials from VITE_ env vars.
-  // The SDK cannot read AWS_* vars directly — those only work in Node/Lambda.
-  const accessKeyId = import.meta.env.VITE_AWS_ACCESS_KEY_ID;
-  const secretAccessKey = import.meta.env.VITE_AWS_SECRET_ACCESS_KEY;
-  const sessionToken = import.meta.env.VITE_AWS_SESSION_TOKEN;
-  const region = import.meta.env.VITE_AWS_REGION ?? "ap-southeast-1";
+  const apiKey = process.env.GROQ_API_KEY;
 
-  if (!accessKeyId || !secretAccessKey) {
-    console.error(
-      "AWS credentials missing. Ensure VITE_AWS_ACCESS_KEY_ID and VITE_AWS_SECRET_ACCESS_KEY are set."
-    );
-    return holdFallback("Missing AWS credentials");
+  if (!apiKey) {
+    console.error("VITE_GROQ_API_KEY is not set");
+    return holdFallback("Missing Groq API key");
   }
 
-  const client = new BedrockRuntimeClient({
-    region,
-    credentials: {
-      accessKeyId,
-      secretAccessKey,
-      ...(sessionToken ? { sessionToken } : {}),
-    },
+  const client = new OpenAI({
+    apiKey,
+    baseURL: "https://api.groq.com/openai/v1",
   });
 
   const prompt = `You are GOGuardian, a financial fraud protection AI for TNG eWallet Malaysia.
@@ -83,42 +69,27 @@ Respond ONLY in this exact JSON format with no markdown or code fences:
   "reasonBM": "Simple Bahasa Malaysia for elderly user (max 2 sentences)"
 }`;
 
-  const command = new InvokeModelCommand({
-    modelId: "apac.amazon.nova-micro-v1:0",
-    contentType: "application/json",
-    accept: "application/json",
-    body: JSON.stringify({
-      messages: [
-        {
-          role: "user",
-          content: [{ text: prompt }],
-        },
-      ],
-      inferenceConfig: {
-        maxTokens: 300,
-        temperature: 0.3,
-      },
-    }),
-  });
-
   try {
-    const response = await client.send(command);
-    const raw = JSON.parse(new TextDecoder().decode(response.body));
-    const text: string = raw.output.message.content[0].text;
+    const response = await client.chat.completions.create({
+      model: "llama-3.3-70b-versatile",
+      messages: [{ role: "user", content: prompt }],
+      max_tokens: 400,
+      temperature: 0.3,
+    });
 
+    const text = response.choices[0].message.content ?? "";
     const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) throw new Error("No JSON found in Bedrock response");
+    if (!jsonMatch) throw new Error("No JSON found in Groq response");
 
     const parsed: BedrockDecision = JSON.parse(jsonMatch[0]);
 
-    // Validate required fields before returning
     if (!["APPROVE", "BLOCK", "HOLD"].includes(parsed.decision)) {
       throw new Error(`Invalid decision value: ${parsed.decision}`);
     }
 
     return parsed;
   } catch (error) {
-    console.error("Bedrock LLM error:", error);
+    console.error("Groq LLM error:", error);
     return holdFallback(`LLM response parsing failed: ${error}`);
   }
 }

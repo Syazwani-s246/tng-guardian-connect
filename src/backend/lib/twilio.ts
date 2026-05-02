@@ -1,5 +1,13 @@
-const BOT_TOKEN = import.meta.env.VITE_TELEGRAM_BOT_TOKEN;
-const DEFAULT_CHAT_ID = import.meta.env.VITE_TELEGRAM_DEFAULT_CHAT_ID;
+const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+const DEFAULT_CHAT_ID = process.env.TELEGRAM_DEFAULT_CHAT_ID;
+
+// Escape special chars for Telegram HTML mode (safer than Markdown for dynamic content)
+function escapeHtml(text: string): string {
+  return String(text)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
 
 // Escape special chars for Telegram HTML mode (safer than Markdown for dynamic content)
 function escapeHtml(text: string): string {
