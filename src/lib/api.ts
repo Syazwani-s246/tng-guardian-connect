@@ -1,7 +1,7 @@
 import mockData from "@/data/mockData.json";
 
-const API_BASE = "https://vmctgel4cf.execute-api.ap-southeast-1.amazonaws.com/prod";
-const SENDER_ID = "test-user-001"; // hardcoded for demo
+const API_BASE = "https://emjjp7j8e7.execute-api.ap-southeast-1.amazonaws.com";
+const SENDER_ID = "user001";
 
 // ─── Real API calls ───────────────────────────────────────────────────────────
 
