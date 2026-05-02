@@ -30,8 +30,8 @@ export async function runGuardrail(
     incomeTier: string;
   }
 ): Promise<GuardrailResult> {
-  const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
-  const baseURL = import.meta.env.VITE_OPENAI_BASE_URL;
+  const apiKey = process.env.GROQ_API_KEY;
+  const baseURL = "https://api.groq.com/openai/v1";
 
   if (!apiKey) {
     console.error("VITE_OPENAI_API_KEY is not set");
@@ -40,9 +40,8 @@ export async function runGuardrail(
 
   // dangerouslyAllowBrowser required when running in Vite/browser context
   const client = new OpenAI({
-    apiKey,
-    baseURL,
-    dangerouslyAllowBrowser: true,
+      apiKey,
+      baseURL,
   });
 
   // Safe baseline — avoids division-by-zero in template
@@ -92,7 +91,7 @@ Respond ONLY in this exact JSON format with no markdown or code fences:
 
   try {
     const response = await client.chat.completions.create({
-      model: "qwen-turbo",
+      model: "llama-3.3-70b-versatile", 
       messages: [{ role: "user", content: prompt }],
       max_tokens: 400,
       temperature: 0.1,
