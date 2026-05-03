@@ -339,7 +339,7 @@ export async function checkTransaction(event: {
     decision: guardrailResult.finalDecision,
     decisionBy: "AI_GUARDIAN",
     reason: guardrailResult.reason,
-    reasonBM: guardrailResult.reasonBM,
+    reasonBM: llmDecision.reasonBM,
     confidence: llmDecision.confidence,
     timestamp,
     reported: false,
