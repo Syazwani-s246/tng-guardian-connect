@@ -92,44 +92,54 @@ function RiskScoreScreen() {
           </p>
         </div>
 
-        {/* AI Summary — replaces 3 separate sections */}
-        <div className={`rounded-2xl border px-4 py-3 space-y-3 ${statusConfig.bg} flex-1`}>
-          <div className="flex items-center justify-between">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">AI Summary</p>
-            <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${statusConfig.labelColor} bg-white border`}>
-              {statusConfig.label}
-            </span>
-          </div>
+        {/* AI Summary — human readable */}
+<div className={`rounded-2xl border px-4 py-3 space-y-3 ${statusConfig.bg} flex-1`}>
+  <div className="flex items-center justify-between">
+    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">AI Summary</p>
+    <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${statusConfig.labelColor} bg-white border`}>
+      {statusConfig.label}
+    </span>
+  </div>
 
-          {/* BM reason */}
-          {reasonBM && (
-            <p className="text-sm text-gray-700 leading-relaxed">{reasonBM}</p>
-          )}
+  {/* Main reason in BM */}
+  {reasonBM && (
+    <p className="text-sm text-gray-700 leading-relaxed">{reasonBM}</p>
+  )}
 
-          {/* Pipeline pills */}
-          {pipeline && (
-            <div className="space-y-1.5 pt-1 border-t border-gray-200">
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-gray-400">Layer 1 — XGBoost</span>
-                <span className="font-semibold text-gray-700">
-                  {pipeline.layer1_xgboost?.verdict} · {pipeline.layer1_xgboost?.score?.toFixed(2)}
-                </span>
-              </div>
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-gray-400">Layer 2 — {layer2Name}</span>
-                <span className="font-semibold text-gray-700">
-                  {pipeline.layer2_bedrock?.decision} · {pipeline.layer2_bedrock?.confidence}
-                </span>
-              </div>
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-gray-400">Layer 3 — {layer3Name}</span>
-                <span className={`font-semibold ${guardrailVerdict === "PASS" ? "text-green-600" : "text-amber-600"}`}>
-                  {guardrailVerdict}
-                </span>
-              </div>
-            </div>
-          )}
-        </div>
+  {/* Context signals — human readable */}
+  <div className="space-y-2 pt-2 border-t border-gray-200">
+    {pipeline?.layer1_xgboost?.amountDeviation > 2 && (
+      <div className="flex items-start gap-2 text-xs text-gray-600">
+        <span className="mt-0.5">⚠️</span>
+        <span>Amount is <strong>{pipeline.layer1_xgboost.amountDeviation}x</strong> your usual transaction size</span>
+      </div>
+    )}
+    {pipeline?.layer1_xgboost?.strikeCount >= 1 && (
+      <div className="flex items-start gap-2 text-xs text-gray-600">
+        <span className="mt-0.5">🚨</span>
+        <span>This number has been reported as a scam <strong>{pipeline.layer1_xgboost.strikeCount}</strong> time(s) by other users</span>
+      </div>
+    )}
+    {pipeline?.layer1_xgboost?.strikeCount === 0 && (
+      <div className="flex items-start gap-2 text-xs text-gray-600">
+        <span className="mt-0.5">👤</span>
+        <span>This is your <strong>first time</strong> transferring to this recipient</span>
+      </div>
+    )}
+    {pipeline?.layer2_bedrock?.evidence_used?.includes("Sender Age: 75") && (
+      <div className="flex items-start gap-2 text-xs text-gray-600">
+        <span className="mt-0.5">🛡️</span>
+        <span>Extra protection enabled for your profile</span>
+      </div>
+    )}
+    {guardrailVerdict === "OVERRIDE" && (
+      <div className="flex items-start gap-2 text-xs text-gray-600">
+        <span className="mt-0.5">🔍</span>
+        <span>AI reasoning was independently verified and flagged for review</span>
+      </div>
+    )}
+  </div>
+</div>
 
         {/* Actions */}
         {isBlocked ? (
