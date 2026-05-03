@@ -13,30 +13,28 @@ export const Route = createFileRoute("/risk-score")({
 });
 
 function RiskGauge({ score }: { score: number }) {
-  const radius = 72;
-  const cx = 100;
-  const cy = 100;
+  const radius = 54;
+  const cx = 80;
+  const cy = 80;
   const circumference = 2 * Math.PI * radius;
   const filled = circumference * (score / 100);
   const color = score <= 30 ? "#22c55e" : score <= 60 ? "#f59e0b" : "#ef4444";
 
   return (
-    <div className="flex flex-col items-center">
-      <svg viewBox="0 0 200 200" width={200} height={200}>
-        <circle cx={cx} cy={cy} r={radius} fill="none" stroke="#e5e7eb" strokeWidth={16} />
-        <circle
-          cx={cx} cy={cy} r={radius} fill="none"
-          stroke={color} strokeWidth={16} strokeLinecap="round"
-          strokeDasharray={`${filled} ${circumference}`}
-          transform={`rotate(-90 ${cx} ${cy})`}
-          style={{ transition: "stroke-dasharray 0.6s ease" }}
-        />
-        <text x={cx} y={cy - 8} textAnchor="middle" dominantBaseline="middle"
-          fontSize="40" fontWeight="bold" fill={color}>{score}</text>
-        <text x={cx} y={cy + 24} textAnchor="middle" dominantBaseline="middle"
-          fontSize="13" fill="#6b7280">/ 100</text>
-      </svg>
-    </div>
+    <svg viewBox="0 0 160 160" width={160} height={160}>
+      <circle cx={cx} cy={cy} r={radius} fill="none" stroke="#e5e7eb" strokeWidth={14} />
+      <circle
+        cx={cx} cy={cy} r={radius} fill="none"
+        stroke={color} strokeWidth={14} strokeLinecap="round"
+        strokeDasharray={`${filled} ${circumference}`}
+        transform={`rotate(-90 ${cx} ${cy})`}
+        style={{ transition: "stroke-dasharray 0.6s ease" }}
+      />
+      <text x={cx} y={cy - 6} textAnchor="middle" dominantBaseline="middle"
+        fontSize="32" fontWeight="bold" fill={color}>{score}</text>
+      <text x={cx} y={cy + 20} textAnchor="middle" dominantBaseline="middle"
+        fontSize="11" fill="#6b7280">/ 100</text>
+    </svg>
   );
 }
 
@@ -45,137 +43,118 @@ function RiskScoreScreen() {
   const [tx, setTx] = useState<any>(null);
 
   useEffect(() => {
-  if (transactionStore.result) {
-    setTx(transactionStore.result);
+    if (transactionStore.result) {
+      setTx(transactionStore.result);
     } else {
-      // fallback to mock if navigated directly
       navigate({ to: "/transfer" });
     }
   }, []);
 
   if (!tx) return null;
 
-  const { risk_score, risk_level, reasons, recipient_name, amount,
-    recipient_phone, isBlocked, isHold, guardrailVerdict, pipeline } = tx;
+  const { risk_score, risk_level, recipient_name, amount,
+    recipient_phone, isBlocked, isHold, guardrailVerdict, pipeline, reasonBM } = tx;
 
   const riskColor = risk_score <= 30 ? "text-green-600" : risk_score <= 60 ? "text-amber-500" : "text-red-500";
-  const riskBg = risk_score <= 30 ? "bg-green-50 border-green-200" : risk_score <= 60 ? "bg-amber-50 border-amber-200" : "bg-red-50 border-red-200";
+
+  const statusConfig = isBlocked
+    ? { bg: "bg-red-50 border-red-200", label: "Auto-Blocked", labelColor: "text-red-700", dot: "bg-red-500" }
+    : isHold
+    ? { bg: "bg-amber-50 border-amber-200", label: "On Hold", labelColor: "text-amber-700", dot: "bg-amber-500" }
+    : { bg: "bg-green-50 border-green-200", label: "Approved", labelColor: "text-green-700", dot: "bg-green-500" };
+
+  const layer2Name = pipeline?.layer2_bedrock ? "AWS Bedrock" : "Groq Llama";
+  const layer3Name = pipeline?.layer3_qwen ? "Alibaba Qwen" : "Groq Guardrail";
 
   return (
     <PhoneShell title="AI Risk Analysis" showBack backTo="/home" hideNav>
-      <div className="px-5 pt-6 pb-10 space-y-5">
+      <div className="flex flex-col h-full px-4 pt-4 pb-5 gap-3 overflow-hidden">
 
         {/* Transaction summary */}
-        <div className="bg-card rounded-2xl px-5 py-4 border border-border shadow-card">
-          <p className="text-xs text-muted-foreground mb-1">Transfer to</p>
-          <p className="font-semibold text-foreground">{recipient_name}</p>
-          <p className="text-xs text-muted-foreground">{recipient_phone}</p>
-          <p className="text-2xl font-bold text-foreground mt-2">RM {amount.toFixed(2)}</p>
+        <div className="bg-white rounded-2xl px-4 py-3 border border-gray-100 shadow-sm flex items-center justify-between">
+          <div>
+            <p className="text-xs text-gray-400">Transfer to</p>
+            <p className="font-semibold text-sm text-gray-800">{recipient_name}</p>
+            <p className="text-xs text-gray-400">{recipient_phone}</p>
+          </div>
+          <p className="text-xl font-bold text-gray-900">RM {amount.toFixed(2)}</p>
         </div>
 
-        {/* Gauge */}
-        <div className="bg-card rounded-2xl border border-border shadow-card py-5 flex flex-col items-center">
-          <p className="text-[11px] font-semibold text-muted-foreground mb-3 uppercase tracking-wide">
+        {/* Gauge + risk level */}
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm py-4 flex flex-col items-center">
+          <p className="text-[10px] font-semibold text-gray-400 mb-2 uppercase tracking-wider">
             GOGuardian AI Risk Score
           </p>
           <RiskGauge score={risk_score} />
-          <span className={`mt-1 text-2xl font-bold ${riskColor}`}>{risk_level} Risk</span>
-          <p className="text-xs text-muted-foreground mt-1">
+          <span className={`text-xl font-bold ${riskColor}`}>{risk_level} Risk</span>
+          <p className="text-xs text-gray-400 mt-0.5">
             {risk_score <= 30 ? "Safe to proceed" : risk_score <= 60 ? "Proceed with caution" : "High probability of scam"}
           </p>
         </div>
 
-        {/* Result banner */}
-        {isBlocked ? (
-          <div className="rounded-2xl bg-red-50 border border-red-200 px-5 py-4 flex items-center gap-3">
-            <span className="flex items-center justify-center w-8 h-8 rounded-full bg-red-100 text-red-700 font-bold text-lg shrink-0">X</span>
-            <div>
-              <p className="font-bold text-red-700">Transaction Auto-Blocked</p>
-              <p className="text-xs text-red-600 mt-0.5">GOGuardian AI blocked this transfer to protect you.</p>
-            </div>
+        {/* AI Summary — replaces 3 separate sections */}
+        <div className={`rounded-2xl border px-4 py-3 space-y-3 ${statusConfig.bg} flex-1`}>
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">AI Summary</p>
+            <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${statusConfig.labelColor} bg-white border`}>
+              {statusConfig.label}
+            </span>
           </div>
-        ) : isHold ? (
-          <div className="rounded-2xl bg-amber-50 border border-amber-200 px-5 py-4 flex items-center gap-3">
-            <span className="flex items-center justify-center w-8 h-8 rounded-full bg-amber-100 text-amber-700 font-bold text-sm shrink-0">HOLD</span>
-            <div>
-              <p className="font-bold text-amber-700">Transaction On Hold</p>
-              <p className="text-xs text-amber-600 mt-0.5">GOGuardian AI flagged this transfer as medium risk.</p>
-            </div>
-          </div>
-        ) : (
-          <div className="rounded-2xl bg-green-50 border border-green-200 px-5 py-4 flex items-center gap-3">
-            <svg className="w-8 h-8 shrink-0 text-green-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="20 6 9 17 4 12" />
-            </svg>
-            <div>
-              <p className="font-bold text-green-700">Transaction Approved</p>
-              <p className="text-xs text-green-600 mt-0.5">Risk is within acceptable range.</p>
-            </div>
-          </div>
-        )}
 
-        {/* Risk reasons */}
-        <div className={`rounded-2xl border px-5 py-4 space-y-3 ${riskBg}`}>
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-            Why this score?
-          </p>
-          <ul className="space-y-2">
-            {reasons.map((reason: string, i: number) => (
-              <li key={i} className="flex items-start gap-2 text-sm text-foreground">
-                <span className={`mt-0.5 shrink-0 ${isBlocked ? "text-red-500" : "text-amber-500"}`}>•</span>
-                {reason}
-              </li>
-            ))}
-          </ul>
+          {/* BM reason */}
+          {reasonBM && (
+            <p className="text-sm text-gray-700 leading-relaxed">{reasonBM}</p>
+          )}
+
+          {/* Pipeline pills */}
+          {pipeline && (
+            <div className="space-y-1.5 pt-1 border-t border-gray-200">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-gray-400">Layer 1 — XGBoost</span>
+                <span className="font-semibold text-gray-700">
+                  {pipeline.layer1_xgboost?.verdict} · {pipeline.layer1_xgboost?.score?.toFixed(2)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-gray-400">Layer 2 — {layer2Name}</span>
+                <span className="font-semibold text-gray-700">
+                  {pipeline.layer2_bedrock?.decision} · {pipeline.layer2_bedrock?.confidence}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-gray-400">Layer 3 — {layer3Name}</span>
+                <span className={`font-semibold ${guardrailVerdict === "PASS" ? "text-green-600" : "text-amber-600"}`}>
+                  {guardrailVerdict}
+                </span>
+              </div>
+            </div>
+          )}
         </div>
-
-        {/* Pipeline breakdown — great for demo/judges */}
-        {pipeline && (
-          <div className="rounded-2xl bg-gray-50 border border-gray-200 px-5 py-4 space-y-2">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-              AI Pipeline
-            </p>
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-gray-500">Layer 1 — XGBoost</span>
-              <span className="font-medium">{pipeline.layer1_xgboost?.verdict} ({pipeline.layer1_xgboost?.score?.toFixed(2)})</span>
-            </div>
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-gray-500">Layer 2 — AWS Bedrock</span>
-              <span className="font-medium">{pipeline.layer2_bedrock?.decision} ({pipeline.layer2_bedrock?.confidence})</span>
-            </div>
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-gray-500">Layer 3 — Alibaba Qwen</span>
-              <span className={`font-medium ${guardrailVerdict === "PASS" ? "text-green-600" : "text-amber-600"}`}>
-                {guardrailVerdict}
-              </span>
-            </div>
-          </div>
-        )}
 
         {/* Actions */}
         {isBlocked ? (
-          <Button size="lg" className="w-full h-14 text-base font-semibold rounded-2xl"
+          <Button size="lg" className="w-full h-12 text-sm font-semibold rounded-2xl"
             onClick={() => navigate({ to: "/home" })}>
             Back to Home
           </Button>
         ) : isHold ? (
-          <div className="space-y-3">
-            <Button size="lg" className="w-full h-14 text-base font-semibold rounded-2xl"
+          <div className="space-y-2">
+            <Button size="lg" className="w-full h-12 text-sm font-semibold rounded-2xl"
               onClick={() => { walletStore.deduct(amount); navigate({ to: "/payment-success" }); }}>
               Proceed Anyway
             </Button>
-            <Button size="lg" variant="outline" className="w-full h-14 text-base font-semibold rounded-2xl border-2"
+            <Button size="lg" variant="outline" className="w-full h-12 text-sm font-semibold rounded-2xl border-2"
               onClick={() => navigate({ to: "/home" })}>
               Cancel Transaction
             </Button>
           </div>
         ) : (
-          <div className="space-y-3">
-            <Button size="lg" className="w-full h-14 text-base font-semibold rounded-2xl"
+          <div className="space-y-2">
+            <Button size="lg" className="w-full h-12 text-sm font-semibold rounded-2xl"
               onClick={() => { walletStore.deduct(amount); navigate({ to: "/payment-success" }); }}>
               Proceed with Transfer
             </Button>
-            <Button size="lg" variant="outline" className="w-full h-14 text-base font-semibold rounded-2xl border-2"
+            <Button size="lg" variant="outline" className="w-full h-12 text-sm font-semibold rounded-2xl border-2"
               onClick={() => navigate({ to: "/home" })}>
               Cancel
             </Button>
