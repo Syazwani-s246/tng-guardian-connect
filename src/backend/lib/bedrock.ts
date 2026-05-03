@@ -66,14 +66,14 @@ Respond ONLY in this exact JSON format with no markdown or code fences:
   "confidence": 0.0-1.0,
   "evidence_used": ["fact1 from context", "fact2 from context"],
   "reason": "English explanation citing only facts above",
-  "reasonBM": "Simple Bahasa Malaysia for elderly user (max 2 sentences)"
+  "reasonBM": "2-3 sentences in simple Bahasa Malaysia for a 70-year-old user. Must explain: why this transfer looks suspicious (mention the amount and how it compares to usual), whether this recipient has been reported by other users before, and what the user should do next. Be specific, not generic."
 }`;
 
   try {
     const response = await client.chat.completions.create({
       model: "llama-3.3-70b-versatile",
       messages: [{ role: "user", content: prompt }],
-      max_tokens: 400,
+      max_tokens: 600,
       temperature: 0.3,
     });
 
