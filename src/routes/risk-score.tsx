@@ -102,9 +102,11 @@ function RiskScoreScreen() {
   </div>
 
   {/* Main reason in BM */}
-  {reasonBM && (
-    <p className="text-sm text-gray-700 leading-relaxed">{reasonBM}</p>
-  )}
+  {(tx?.pipeline?.layer2_bedrock?.reason || reasonBM) && (
+  <p className="text-sm text-gray-700 leading-relaxed">
+    {tx?.pipeline?.layer2_bedrock?.reason || reasonBM}
+  </p>
+)}
 
   {/* Context signals — human readable */}
   <div className="space-y-2 pt-2 border-t border-gray-200">
